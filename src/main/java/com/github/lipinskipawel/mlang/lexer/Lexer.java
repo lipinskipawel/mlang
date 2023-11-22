@@ -4,16 +4,24 @@ import com.github.lipinskipawel.mlang.token.Token;
 import com.github.lipinskipawel.mlang.token.TokenType;
 
 import static com.github.lipinskipawel.mlang.token.TokenType.ASSIGN;
+import static com.github.lipinskipawel.mlang.token.TokenType.ASTERISK;
+import static com.github.lipinskipawel.mlang.token.TokenType.BANG;
 import static com.github.lipinskipawel.mlang.token.TokenType.COMMA;
 import static com.github.lipinskipawel.mlang.token.TokenType.EOF;
+import static com.github.lipinskipawel.mlang.token.TokenType.EQ;
+import static com.github.lipinskipawel.mlang.token.TokenType.GT;
 import static com.github.lipinskipawel.mlang.token.TokenType.ILLEGAL;
 import static com.github.lipinskipawel.mlang.token.TokenType.INT;
 import static com.github.lipinskipawel.mlang.token.TokenType.LBRACE;
 import static com.github.lipinskipawel.mlang.token.TokenType.LPAREN;
+import static com.github.lipinskipawel.mlang.token.TokenType.LT;
+import static com.github.lipinskipawel.mlang.token.TokenType.MINUS;
+import static com.github.lipinskipawel.mlang.token.TokenType.NOT_EQ;
 import static com.github.lipinskipawel.mlang.token.TokenType.PLUS;
 import static com.github.lipinskipawel.mlang.token.TokenType.RBRACE;
 import static com.github.lipinskipawel.mlang.token.TokenType.RPAREN;
 import static com.github.lipinskipawel.mlang.token.TokenType.SEMICOLON;
+import static com.github.lipinskipawel.mlang.token.TokenType.SLASH;
 import static java.lang.Character.isDigit;
 import static java.lang.Character.isLetter;
 import static java.lang.String.valueOf;
@@ -40,8 +48,28 @@ final class Lexer {
     Token nextToken() {
         skipWhitespaces();
         return switch (character) {
-            case '=' -> toToken(ASSIGN);
+            case '=' -> {
+                var nextChar = peekChar();
+                if (nextChar == '=') {
+                    readChar();
+                    yield toToken(EQ, "==");
+                }
+                yield toToken(ASSIGN);
+            }
             case '+' -> toToken(PLUS);
+            case '-' -> toToken(MINUS);
+            case '!' -> {
+                var nextChar = peekChar();
+                if (nextChar == '=') {
+                    readChar();
+                    yield toToken(NOT_EQ, "!=");
+                }
+                yield toToken(BANG);
+            }
+            case '*' -> toToken(ASTERISK);
+            case '/' -> toToken(SLASH);
+            case '<' -> toToken(LT);
+            case '>' -> toToken(GT);
             case '(' -> toToken(LPAREN);
             case ')' -> toToken(RPAREN);
             case '{' -> toToken(LBRACE);
@@ -72,6 +100,12 @@ final class Lexer {
         return token;
     }
 
+    private Token toToken(TokenType tokenType, String literal) {
+        final var token = new Token(tokenType, literal);
+        readChar();
+        return token;
+    }
+
     String readIdentifier() {
         var pos = position;
         while (isLetter(character)) {
@@ -86,6 +120,13 @@ final class Lexer {
             readChar();
         }
         return input.substring(pos, position);
+    }
+
+    char peekChar() {
+        if (readPosition >= input.length()) {
+            return 0;
+        }
+        return input.charAt(readPosition);
     }
 
     void readChar() {

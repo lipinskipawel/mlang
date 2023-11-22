@@ -13,6 +13,15 @@ public enum TokenType {
     // Operators
     ASSIGN("="),
     PLUS("+"),
+    MINUS("-"),
+    BANG("!"),
+    ASTERISK("*"),
+    SLASH("/"),
+    EQ("=="),
+    NOT_EQ("!="),
+
+    LT("<"),
+    GT(">"),
 
     // Delimiters
     COMMA(","),
@@ -25,12 +34,22 @@ public enum TokenType {
 
     // Keywords
     FUNCTION("FUNCTION"),
-    LET("LET");
+    LET("LET"),
+    TRUE("TRUE"),
+    FALSE("FALSE"),
+    IF("IF"),
+    ELSE("ELSE"),
+    RETURN("RETURN");
 
     private final String name;
     private static Map<String, TokenType> keywords = Map.of(
             "fn", FUNCTION,
-            "let", LET
+            "let", LET,
+            "true", TRUE,
+            "false", FALSE,
+            "if", IF,
+            "else", ELSE,
+            "return", RETURN
     );
 
     TokenType(String name) {
