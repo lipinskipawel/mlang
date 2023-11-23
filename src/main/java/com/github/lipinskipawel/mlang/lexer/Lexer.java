@@ -26,7 +26,7 @@ import static java.lang.Character.isDigit;
 import static java.lang.Character.isLetter;
 import static java.lang.String.valueOf;
 
-final class Lexer {
+public final class Lexer {
     private final String input;
     private int position; // current position in input (points to current char)
     private int readPosition; // current reading position in input (after current char)
@@ -45,7 +45,7 @@ final class Lexer {
         return lexer;
     }
 
-    Token nextToken() {
+    public Token nextToken() {
         skipWhitespaces();
         return switch (character) {
             case '=' -> {
