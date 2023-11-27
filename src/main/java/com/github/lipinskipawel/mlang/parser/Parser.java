@@ -1,8 +1,9 @@
 package com.github.lipinskipawel.mlang.parser;
 
 import com.github.lipinskipawel.mlang.ast.Program;
-import com.github.lipinskipawel.mlang.ast.expression.IdentifierExpression;
+import com.github.lipinskipawel.mlang.ast.expression.Identifier;
 import com.github.lipinskipawel.mlang.ast.statement.LetStatement;
+import com.github.lipinskipawel.mlang.ast.statement.ReturnStatement;
 import com.github.lipinskipawel.mlang.ast.statement.Statement;
 import com.github.lipinskipawel.mlang.lexer.Lexer;
 import com.github.lipinskipawel.mlang.token.Token;
@@ -51,6 +52,7 @@ public final class Parser {
     private Statement parseStatement() {
         return switch (currentToken.type()) {
             case LET -> parseLetStatement();
+            case RETURN -> parseReturnStatement();
             default -> null;
         };
     }
@@ -62,7 +64,7 @@ public final class Parser {
             return null;
         }
 
-        letStatement.name = new IdentifierExpression(currentToken, currentToken.literal());
+        letStatement.name = new Identifier(currentToken, currentToken.literal());
 
         if (!expectPeek(ASSIGN)) {
             return null;
@@ -73,6 +75,17 @@ public final class Parser {
         }
 
         return letStatement;
+    }
+
+    private ReturnStatement parseReturnStatement() {
+        var returnStatement = new ReturnStatement(currentToken);
+
+        nextToken();
+        while (!curTokenIs(SEMICOLON)) {
+            nextToken();
+        }
+
+        return returnStatement;
     }
 
     private boolean curTokenIs(TokenType tokenType) {

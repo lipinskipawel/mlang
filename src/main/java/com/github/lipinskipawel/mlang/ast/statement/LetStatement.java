@@ -1,12 +1,12 @@
 package com.github.lipinskipawel.mlang.ast.statement;
 
 import com.github.lipinskipawel.mlang.ast.expression.Expression;
-import com.github.lipinskipawel.mlang.ast.expression.IdentifierExpression;
+import com.github.lipinskipawel.mlang.ast.expression.Identifier;
 import com.github.lipinskipawel.mlang.token.Token;
 
 public final class LetStatement implements Statement {
     private Token token; // the Token.LET token
-    public IdentifierExpression name;
+    public Identifier name;
     private Expression value;
 
     public LetStatement(Token token) {
@@ -23,7 +23,7 @@ public final class LetStatement implements Statement {
 
     }
 
-    public IdentifierExpression name() {
+    public Identifier name() {
         return name;
     }
 
