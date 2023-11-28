@@ -1,14 +1,19 @@
 package com.github.lipinskipawel.mlang.parser;
 
+import com.github.lipinskipawel.mlang.ast.expression.Identifier;
 import com.github.lipinskipawel.mlang.ast.statement.LetStatement;
 import com.github.lipinskipawel.mlang.ast.statement.ReturnStatement;
 import com.github.lipinskipawel.mlang.ast.statement.Statement;
+import com.github.lipinskipawel.mlang.token.Token;
+import com.github.lipinskipawel.mlang.token.TokenType;
 import org.assertj.core.api.WithAssertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
+import static com.github.lipinskipawel.mlang.ast.Program.givenProgram;
 import static com.github.lipinskipawel.mlang.lexer.Lexer.lexer;
+import static com.github.lipinskipawel.mlang.token.TokenType.IDENT;
 
 final class ParserTest implements WithAssertions {
 
@@ -77,6 +82,24 @@ final class ParserTest implements WithAssertions {
         }
     }
 
+    @Test
+    void should_print_simple_statement() {
+        var program = givenProgram(List.of(
+                new LetStatement(
+                        new Token(TokenType.LET, "let"),
+                        new Identifier(
+                                new Token(IDENT, "myVar"),
+                                "myVar"),
+                        new Identifier(
+                                new Token(IDENT, "anotherValue"),
+                                "anotherValue"
+                        )
+                )
+        ));
+
+        assertThat(program.string()).isEqualTo("let myVar = anotherValue;");
+    }
+
     private void checkParseErrors(Parser parser) {
         var errors = parser.errors();
         if (errors.isEmpty()) {
@@ -86,7 +109,7 @@ final class ParserTest implements WithAssertions {
         var headerErrorLine = "parser has %d errors".formatted(errors.size());
         var details = errors.stream()
                 .map("parser error %s\n"::formatted)
-                .collect(StringBuffer::new, StringBuffer::append, StringBuffer::append);
+                .collect(StringBuilder::new, StringBuilder::append, StringBuilder::append);
         fail(headerErrorLine + "\n" + details);
     }
 }

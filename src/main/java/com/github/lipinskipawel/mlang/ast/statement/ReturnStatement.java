@@ -3,9 +3,9 @@ package com.github.lipinskipawel.mlang.ast.statement;
 import com.github.lipinskipawel.mlang.ast.expression.Expression;
 import com.github.lipinskipawel.mlang.token.Token;
 
-public final class ReturnStatement implements Statement {
+public final class ReturnStatement extends Statement {
     private Token token; // the Token.RETURN token
-    private Expression expression;
+    private Expression returnValue;
 
     public ReturnStatement(Token token) {
         this.token = token;
@@ -14,6 +14,22 @@ public final class ReturnStatement implements Statement {
     @Override
     public String tokenLiteral() {
         return token.literal();
+    }
+
+    @Override
+    public String string() {
+        final var stringBuilder = new StringBuilder();
+
+        stringBuilder.append(tokenLiteral())
+                .append(" ");
+
+        if (returnValue != null) {
+            stringBuilder.append(returnValue.string());
+        }
+
+        return stringBuilder
+                .append(";")
+                .toString();
     }
 
     @Override

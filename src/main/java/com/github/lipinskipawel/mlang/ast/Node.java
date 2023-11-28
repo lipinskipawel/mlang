@@ -1,5 +1,6 @@
 package com.github.lipinskipawel.mlang.ast;
 
-public interface Node {
-    String tokenLiteral();
+public abstract class Node {
+    public abstract String tokenLiteral();
+    public abstract String string();
 }

@@ -4,7 +4,7 @@ import com.github.lipinskipawel.mlang.ast.expression.Expression;
 import com.github.lipinskipawel.mlang.ast.expression.Identifier;
 import com.github.lipinskipawel.mlang.token.Token;
 
-public final class LetStatement implements Statement {
+public final class LetStatement extends Statement {
     private Token token; // the Token.LET token
     public Identifier name;
     private Expression value;
@@ -13,9 +13,33 @@ public final class LetStatement implements Statement {
         this.token = token;
     }
 
+    public LetStatement(Token token, Identifier identifier, Expression expression) {
+        this.token = token;
+        this.name = identifier;
+        this.value = expression;
+    }
+
     @Override
     public String tokenLiteral() {
         return token.literal();
+    }
+
+    @Override
+    public String string() {
+        final var stringBuilder = new StringBuilder();
+
+        stringBuilder.append(tokenLiteral())
+                .append(" ")
+                .append(name.string())
+                .append(" = ");
+
+        if (value != null) {
+            stringBuilder.append(value.string());
+        }
+
+        return stringBuilder
+                .append(";")
+                .toString();
     }
 
     @Override

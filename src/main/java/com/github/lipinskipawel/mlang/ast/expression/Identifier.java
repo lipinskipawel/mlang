@@ -2,7 +2,7 @@ package com.github.lipinskipawel.mlang.ast.expression;
 
 import com.github.lipinskipawel.mlang.token.Token;
 
-public final class Identifier implements Expression {
+public final class Identifier extends Expression {
     private Token token; // the token.IDENT token
     private String value;
 
@@ -14,6 +14,11 @@ public final class Identifier implements Expression {
     @Override
     public String tokenLiteral() {
         return token.literal();
+    }
+
+    @Override
+    public String string() {
+        return value;
     }
 
     @Override
