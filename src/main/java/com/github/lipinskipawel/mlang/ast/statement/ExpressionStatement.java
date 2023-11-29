@@ -7,6 +7,10 @@ public final class ExpressionStatement extends Statement {
     private Token token; // the first token of the expression
     private Expression expression;
 
+    public ExpressionStatement(Token token) {
+        this.token = token;
+    }
+
     @Override
     public String tokenLiteral() {
         return token.literal();
@@ -23,5 +27,13 @@ public final class ExpressionStatement extends Statement {
     @Override
     public void statementNode() {
 
+    }
+
+    public void expression(Expression expression) {
+        this.expression = expression;
+    }
+
+    public Expression expression() {
+        return expression;
     }
 }
