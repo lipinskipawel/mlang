@@ -2,6 +2,7 @@ package com.github.lipinskipawel.mlang.parser;
 
 import com.github.lipinskipawel.mlang.ast.expression.Expression;
 import com.github.lipinskipawel.mlang.ast.expression.Identifier;
+import com.github.lipinskipawel.mlang.ast.expression.InfixExpression;
 import com.github.lipinskipawel.mlang.ast.expression.IntegerLiteral;
 import com.github.lipinskipawel.mlang.ast.expression.PrefixExpression;
 import com.github.lipinskipawel.mlang.ast.statement.ExpressionStatement;
@@ -187,6 +188,71 @@ final class ParserTest implements WithAssertions {
         var integerLiteral = (IntegerLiteral) expression;
         assertThat(integerLiteral.value()).isEqualTo(value);
         assertThat(integerLiteral.tokenLiteral()).isEqualTo(String.valueOf(value));
+    }
+
+    static Stream<Arguments> infixExpressions() {
+        return Stream.of(
+                arguments("5 + 5;", 5, "+", 5),
+                arguments("5 - 5;", 5, "-", 5),
+                arguments("5 * 5;", 5, "*", 5),
+                arguments("5 / 5;", 5, "/", 5),
+                arguments("5 > 5;", 5, ">", 5),
+                arguments("5 < 5;", 5, "<", 5),
+                arguments("5 == 5;", 5, "==", 5),
+                arguments("5 != 5;", 5, "!=", 5)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("infixExpressions")
+    void should_parse_infix_expression(String input, int leftValue, String operator, int rightValue) {
+        var lexer = lexer(input);
+        var parser = new Parser(lexer);
+
+        var program = parser.parseProgram();
+        checkParseErrors(parser);
+
+        assertThat(program.programStatements().size()).isEqualTo(1);
+
+        var statement = program.programStatements().get(0);
+        assertThat(statement).isInstanceOf(ExpressionStatement.class);
+
+        var expressionStatement = (ExpressionStatement) statement;
+        assertThat(expressionStatement.expression()).isInstanceOf(InfixExpression.class);
+
+        var infixExpression = (InfixExpression) expressionStatement.expression();
+        testIntegerLiteral(infixExpression.left(), leftValue);
+        assertThat(infixExpression.operator()).isEqualTo(operator);
+        testIntegerLiteral(infixExpression.right(), rightValue);
+    }
+
+    static Stream<Arguments> precedenceTestCases() {
+        return Stream.of(
+                arguments("-a * b", "((-a) * b)"),
+                arguments("!-a", "(!(-a))"),
+                arguments("a + b + c", "((a + b) + c)"),
+                arguments("a + b - c", "((a + b) - c)"),
+                arguments("a * b * c", "((a * b) * c)"),
+                arguments("a * b / c", "((a * b) / c)"),
+                arguments("a + b / c", "(a + (b / c))"),
+                arguments("a + b * c + d / e - f", "(((a + (b * c)) + (d / e)) - f)"),
+                arguments("3 + 4; -5 * 5", "(3 + 4)((-5) * 5)"),
+                arguments("5 > 4 == 3 < 4", "((5 > 4) == (3 < 4))"),
+                arguments("5 < 4 != 3 > 4", "((5 < 4) != (3 > 4))"),
+                arguments("3 + 4 * 5 == 3 * 1 + 4 * 5", "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))")
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("precedenceTestCases")
+    void should_parse_operator_precedence_correctly(String input, String expected) {
+        var lexer = lexer(input);
+        var parser = new Parser(lexer);
+
+        var program = parser.parseProgram();
+        checkParseErrors(parser);
+
+        assertThat(program.string()).isEqualTo(expected);
     }
 
     private void checkParseErrors(Parser parser) {

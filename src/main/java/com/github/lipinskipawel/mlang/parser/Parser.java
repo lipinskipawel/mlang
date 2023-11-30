@@ -3,6 +3,7 @@ package com.github.lipinskipawel.mlang.parser;
 import com.github.lipinskipawel.mlang.ast.Program;
 import com.github.lipinskipawel.mlang.ast.expression.Expression;
 import com.github.lipinskipawel.mlang.ast.expression.Identifier;
+import com.github.lipinskipawel.mlang.ast.expression.InfixExpression;
 import com.github.lipinskipawel.mlang.ast.expression.IntegerLiteral;
 import com.github.lipinskipawel.mlang.ast.expression.PrefixExpression;
 import com.github.lipinskipawel.mlang.ast.statement.ExpressionStatement;
@@ -20,15 +21,26 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import static com.github.lipinskipawel.mlang.parser.Parser.Precedence.LOWEST;
-import static com.github.lipinskipawel.mlang.parser.Parser.Precedence.PREFIX;
+import static com.github.lipinskipawel.mlang.parser.Precedence.EQUALS;
+import static com.github.lipinskipawel.mlang.parser.Precedence.LESSGREATER;
+import static com.github.lipinskipawel.mlang.parser.Precedence.LOWEST;
+import static com.github.lipinskipawel.mlang.parser.Precedence.PREFIX;
+import static com.github.lipinskipawel.mlang.parser.Precedence.PRODUCT;
+import static com.github.lipinskipawel.mlang.parser.Precedence.SUM;
 import static com.github.lipinskipawel.mlang.token.TokenType.ASSIGN;
+import static com.github.lipinskipawel.mlang.token.TokenType.ASTERISK;
 import static com.github.lipinskipawel.mlang.token.TokenType.BANG;
 import static com.github.lipinskipawel.mlang.token.TokenType.EOF;
+import static com.github.lipinskipawel.mlang.token.TokenType.EQ;
+import static com.github.lipinskipawel.mlang.token.TokenType.GT;
 import static com.github.lipinskipawel.mlang.token.TokenType.IDENT;
 import static com.github.lipinskipawel.mlang.token.TokenType.INT;
+import static com.github.lipinskipawel.mlang.token.TokenType.LT;
 import static com.github.lipinskipawel.mlang.token.TokenType.MINUS;
+import static com.github.lipinskipawel.mlang.token.TokenType.NOT_EQ;
+import static com.github.lipinskipawel.mlang.token.TokenType.PLUS;
 import static com.github.lipinskipawel.mlang.token.TokenType.SEMICOLON;
+import static com.github.lipinskipawel.mlang.token.TokenType.SLASH;
 import static java.lang.Integer.parseInt;
 
 public final class Parser {
@@ -39,22 +51,16 @@ public final class Parser {
 
     private final Map<TokenType, Supplier<Expression>> prefixParseFns;
     private final Map<TokenType, Function<Expression, Expression>> infixParseFns;
-
-    enum Precedence {
-        LOWEST(1),
-        EQUALS(2), // ==
-        LESSGREATER(3), // > or <
-        SUM(4), // +
-        PRODUCT(5), // *
-        PREFIX(6), // -X or !X
-        CALL(7); // myFunction(X)
-
-        private final int order;
-
-        Precedence(int order) {
-            this.order = order;
-        }
-    }
+    private final Map<TokenType, Precedence> precedences = Map.of(
+            EQ, EQUALS,
+            NOT_EQ, EQUALS,
+            LT, LESSGREATER,
+            GT, LESSGREATER,
+            PLUS, SUM,
+            MINUS, SUM,
+            SLASH, PRODUCT,
+            ASTERISK, PRODUCT
+    );
 
     public Parser(Lexer lexer) {
         this.lexer = lexer;
@@ -68,6 +74,14 @@ public final class Parser {
         registerPrefix(INT, this::parseIntegerLiteral);
         registerPrefix(BANG, this::parsePrefixExpression);
         registerPrefix(MINUS, this::parsePrefixExpression);
+        registerInfix(PLUS, this::parseInfixExpression);
+        registerInfix(MINUS, this::parseInfixExpression);
+        registerInfix(SLASH, this::parseInfixExpression);
+        registerInfix(ASTERISK, this::parseInfixExpression);
+        registerInfix(EQ, this::parseInfixExpression);
+        registerInfix(NOT_EQ, this::parseInfixExpression);
+        registerInfix(LT, this::parseInfixExpression);
+        registerInfix(GT, this::parseInfixExpression);
     }
 
     private void nextToken() {
@@ -148,6 +162,15 @@ public final class Parser {
 
         var leftExpression = prefix.get();
 
+        while (!peekTokenIs(SEMICOLON) && precedence.hasLowerPrecedence(peekPrecedence())) {
+            final var infix = infixParseFns.get(peekToken.type());
+            if (infix == null) {
+                return leftExpression;
+            }
+            nextToken();
+            leftExpression = infix.apply(leftExpression);
+        }
+
         return leftExpression;
     }
 
@@ -180,12 +203,14 @@ public final class Parser {
         return prefixExpression;
     }
 
-    private Expression prefixParseFn() {
-        return null;
-    }
+    private Expression parseInfixExpression(Expression left) {
+        final var infixExpression = new InfixExpression(currentToken, left, currentToken.literal());
 
-    private Expression infixParseFn(Expression leftSide) {
-        return null;
+        var precedence = curPrecedence();
+        nextToken();
+        infixExpression.right(parseExpression(precedence));
+
+        return infixExpression;
     }
 
     private void registerPrefix(TokenType type, Supplier<Expression> prefixParseFn) {
@@ -196,6 +221,13 @@ public final class Parser {
         infixParseFns.put(type, infixParseFn);
     }
 
+    private Precedence peekPrecedence() {
+        return precedences.getOrDefault(peekToken.type(), LOWEST);
+    }
+
+    private Precedence curPrecedence() {
+        return precedences.getOrDefault(currentToken.type(), LOWEST);
+    }
 
     private boolean curTokenIs(TokenType tokenType) {
         return currentToken.type() == tokenType;
