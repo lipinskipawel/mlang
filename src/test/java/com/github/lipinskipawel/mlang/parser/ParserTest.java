@@ -125,11 +125,7 @@ final class ParserTest implements WithAssertions {
         assertThat(statement).isInstanceOf(ExpressionStatement.class);
 
         var expressionStatement = (ExpressionStatement) statement;
-        assertThat(expressionStatement.expression()).isInstanceOf(Identifier.class);
-
-        var identifier = (Identifier) expressionStatement.expression();
-        assertThat(identifier.value()).isEqualTo("foobar");
-        assertThat(identifier.tokenLiteral()).isEqualTo("foobar");
+        testLiteralExpression(expressionStatement.expression(), "foobar");
     }
 
     @Test
@@ -147,11 +143,7 @@ final class ParserTest implements WithAssertions {
         assertThat(statement).isInstanceOf(ExpressionStatement.class);
 
         var expressionStatement = (ExpressionStatement) statement;
-        assertThat(expressionStatement.expression()).isInstanceOf(IntegerLiteral.class);
-
-        var integerLiteral = (IntegerLiteral) expressionStatement.expression();
-        assertThat(integerLiteral.value()).isEqualTo(5);
-        assertThat(integerLiteral.tokenLiteral()).isEqualTo("5");
+        testLiteralExpression(expressionStatement.expression(), 5);
     }
 
     static Stream<Arguments> prefixExpressions() {
@@ -180,14 +172,7 @@ final class ParserTest implements WithAssertions {
 
         var prefixExpression = (PrefixExpression) expressionStatement.expression();
         assertThat(prefixExpression.operator()).isEqualTo(operator);
-        testIntegerLiteral(prefixExpression.right(), integerValue);
-    }
-
-    private void testIntegerLiteral(Expression expression, int value) {
-        assertThat(expression).isInstanceOf(IntegerLiteral.class);
-        var integerLiteral = (IntegerLiteral) expression;
-        assertThat(integerLiteral.value()).isEqualTo(value);
-        assertThat(integerLiteral.tokenLiteral()).isEqualTo(String.valueOf(value));
+        testLiteralExpression(prefixExpression.right(), integerValue);
     }
 
     static Stream<Arguments> infixExpressions() {
@@ -221,9 +206,7 @@ final class ParserTest implements WithAssertions {
         assertThat(expressionStatement.expression()).isInstanceOf(InfixExpression.class);
 
         var infixExpression = (InfixExpression) expressionStatement.expression();
-        testIntegerLiteral(infixExpression.left(), leftValue);
-        assertThat(infixExpression.operator()).isEqualTo(operator);
-        testIntegerLiteral(infixExpression.right(), rightValue);
+        testInfixExpression(infixExpression, leftValue, operator, rightValue);
     }
 
     static Stream<Arguments> precedenceTestCases() {
@@ -253,6 +236,39 @@ final class ParserTest implements WithAssertions {
         checkParseErrors(parser);
 
         assertThat(program.string()).isEqualTo(expected);
+    }
+
+    private void testInfixExpression(Expression expression, Object left, String operator, Object right) {
+        assertThat(expression).isInstanceOf(InfixExpression.class);
+        var infixExpression = (InfixExpression) expression;
+
+        testLiteralExpression(infixExpression.left(), left);
+        assertThat(infixExpression.operator()).isEqualTo(operator);
+        testLiteralExpression(infixExpression.right(), right);
+    }
+
+    private void testLiteralExpression(Expression expression, Object object) {
+        switch (object) {
+            case Integer integer -> testIntegerLiteral(expression, integer);
+            case String string -> testIdentifier(expression, string);
+            default -> fail("type of expression not supported. got=%s".formatted(object.getClass()));
+        }
+    }
+
+    private void testIntegerLiteral(Expression expression, int value) {
+        assertThat(expression).isInstanceOf(IntegerLiteral.class);
+        var integerLiteral = (IntegerLiteral) expression;
+
+        assertThat(integerLiteral.value()).isEqualTo(value);
+        assertThat(integerLiteral.tokenLiteral()).isEqualTo(String.valueOf(value));
+    }
+
+    private void testIdentifier(Expression expression, String value) {
+        assertThat(expression).isInstanceOf(Identifier.class);
+        var identifier = (Identifier) expression;
+
+        assertThat(identifier.value()).isEqualTo(value);
+        assertThat(identifier.tokenLiteral()).isEqualTo(value);
     }
 
     private void checkParseErrors(Parser parser) {
