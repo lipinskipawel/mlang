@@ -1,5 +1,6 @@
 package com.github.lipinskipawel.mlang.parser;
 
+import com.github.lipinskipawel.mlang.ast.expression.BooleanExpression;
 import com.github.lipinskipawel.mlang.ast.expression.Expression;
 import com.github.lipinskipawel.mlang.ast.expression.Identifier;
 import com.github.lipinskipawel.mlang.ast.expression.InfixExpression;
@@ -149,13 +150,15 @@ final class ParserTest implements WithAssertions {
     static Stream<Arguments> prefixExpressions() {
         return Stream.of(
                 arguments("!5;", "!", 5),
-                arguments("-15;", "-", 15)
+                arguments("-15;", "-", 15),
+                arguments("!true;", "!", true),
+                arguments("!false;", "!", false)
         );
     }
 
     @ParameterizedTest
     @MethodSource("prefixExpressions")
-    void should_parse_prefix_expression(String input, String operator, int integerValue) {
+    void should_parse_prefix_expression(String input, String operator, Object integerValue) {
         var lexer = lexer(input);
         var parser = new Parser(lexer);
 
@@ -184,13 +187,16 @@ final class ParserTest implements WithAssertions {
                 arguments("5 > 5;", 5, ">", 5),
                 arguments("5 < 5;", 5, "<", 5),
                 arguments("5 == 5;", 5, "==", 5),
-                arguments("5 != 5;", 5, "!=", 5)
+                arguments("5 != 5;", 5, "!=", 5),
+                arguments("true == true", true, "==", true),
+                arguments("true != false", true, "!=", false),
+                arguments("false == false", false, "==", false)
         );
     }
 
     @ParameterizedTest
     @MethodSource("infixExpressions")
-    void should_parse_infix_expression(String input, int leftValue, String operator, int rightValue) {
+    void should_parse_infix_expression(String input, Object leftValue, String operator, Object rightValue) {
         var lexer = lexer(input);
         var parser = new Parser(lexer);
 
@@ -222,7 +228,11 @@ final class ParserTest implements WithAssertions {
                 arguments("3 + 4; -5 * 5", "(3 + 4)((-5) * 5)"),
                 arguments("5 > 4 == 3 < 4", "((5 > 4) == (3 < 4))"),
                 arguments("5 < 4 != 3 > 4", "((5 < 4) != (3 > 4))"),
-                arguments("3 + 4 * 5 == 3 * 1 + 4 * 5", "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))")
+                arguments("3 + 4 * 5 == 3 * 1 + 4 * 5", "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))"),
+                arguments("true", "true"),
+                arguments("false", "false"),
+                arguments("3 > 5 == false", "((3 > 5) == false)"),
+                arguments("3 < 5 == true", "((3 < 5) == true)")
         );
     }
 
@@ -238,6 +248,24 @@ final class ParserTest implements WithAssertions {
         assertThat(program.string()).isEqualTo(expected);
     }
 
+    @Test
+    void should_parse_boolean_expression() {
+        var input = "true;";
+        var lexer = lexer(input);
+        var parser = new Parser(lexer);
+
+        var program = parser.parseProgram();
+        checkParseErrors(parser);
+
+        assertThat(program.programStatements().size()).isEqualTo(1);
+
+        var statement = program.programStatements().get(0);
+        assertThat(statement).isInstanceOf(ExpressionStatement.class);
+
+        var expressionStatement = (ExpressionStatement) statement;
+        testLiteralExpression(expressionStatement.expression(), true);
+    }
+
     private void testInfixExpression(Expression expression, Object left, String operator, Object right) {
         assertThat(expression).isInstanceOf(InfixExpression.class);
         var infixExpression = (InfixExpression) expression;
@@ -251,6 +279,7 @@ final class ParserTest implements WithAssertions {
         switch (object) {
             case Integer integer -> testIntegerLiteral(expression, integer);
             case String string -> testIdentifier(expression, string);
+            case Boolean bool -> testBoolean(expression, bool);
             default -> fail("type of expression not supported. got=%s".formatted(object.getClass()));
         }
     }
@@ -269,6 +298,14 @@ final class ParserTest implements WithAssertions {
 
         assertThat(identifier.value()).isEqualTo(value);
         assertThat(identifier.tokenLiteral()).isEqualTo(value);
+    }
+
+    private void testBoolean(Expression expression, boolean bool) {
+        assertThat(expression).isInstanceOf(BooleanExpression.class);
+        var booleanExpression = (BooleanExpression) expression;
+
+        assertThat(booleanExpression.value()).isEqualTo(bool);
+        assertThat(booleanExpression.tokenLiteral()).isEqualTo(String.valueOf(bool));
     }
 
     private void checkParseErrors(Parser parser) {

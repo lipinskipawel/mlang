@@ -1,6 +1,7 @@
 package com.github.lipinskipawel.mlang.parser;
 
 import com.github.lipinskipawel.mlang.ast.Program;
+import com.github.lipinskipawel.mlang.ast.expression.BooleanExpression;
 import com.github.lipinskipawel.mlang.ast.expression.Expression;
 import com.github.lipinskipawel.mlang.ast.expression.Identifier;
 import com.github.lipinskipawel.mlang.ast.expression.InfixExpression;
@@ -32,6 +33,7 @@ import static com.github.lipinskipawel.mlang.token.TokenType.ASTERISK;
 import static com.github.lipinskipawel.mlang.token.TokenType.BANG;
 import static com.github.lipinskipawel.mlang.token.TokenType.EOF;
 import static com.github.lipinskipawel.mlang.token.TokenType.EQ;
+import static com.github.lipinskipawel.mlang.token.TokenType.FALSE;
 import static com.github.lipinskipawel.mlang.token.TokenType.GT;
 import static com.github.lipinskipawel.mlang.token.TokenType.IDENT;
 import static com.github.lipinskipawel.mlang.token.TokenType.INT;
@@ -41,6 +43,7 @@ import static com.github.lipinskipawel.mlang.token.TokenType.NOT_EQ;
 import static com.github.lipinskipawel.mlang.token.TokenType.PLUS;
 import static com.github.lipinskipawel.mlang.token.TokenType.SEMICOLON;
 import static com.github.lipinskipawel.mlang.token.TokenType.SLASH;
+import static com.github.lipinskipawel.mlang.token.TokenType.TRUE;
 import static java.lang.Integer.parseInt;
 
 public final class Parser {
@@ -74,6 +77,8 @@ public final class Parser {
         registerPrefix(INT, this::parseIntegerLiteral);
         registerPrefix(BANG, this::parsePrefixExpression);
         registerPrefix(MINUS, this::parsePrefixExpression);
+        registerPrefix(TRUE, this::parseBoolean);
+        registerPrefix(FALSE, this::parseBoolean);
         registerInfix(PLUS, this::parseInfixExpression);
         registerInfix(MINUS, this::parseInfixExpression);
         registerInfix(SLASH, this::parseInfixExpression);
@@ -201,6 +206,10 @@ public final class Parser {
         prefixExpression.right(parseExpression(PREFIX));
 
         return prefixExpression;
+    }
+
+    private Expression parseBoolean() {
+        return new BooleanExpression(currentToken, curTokenIs(TRUE));
     }
 
     private Expression parseInfixExpression(Expression left) {
