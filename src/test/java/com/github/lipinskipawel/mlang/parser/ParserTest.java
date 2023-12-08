@@ -232,7 +232,13 @@ final class ParserTest implements WithAssertions {
                 arguments("true", "true"),
                 arguments("false", "false"),
                 arguments("3 > 5 == false", "((3 > 5) == false)"),
-                arguments("3 < 5 == true", "((3 < 5) == true)")
+                arguments("3 < 5 == true", "((3 < 5) == true)"),
+
+                arguments("1 + (2 + 3) + 4", "((1 + (2 + 3)) + 4)"),
+                arguments("(5 + 5) * 2", "((5 + 5) * 2)"),
+                arguments("2 / (5 + 5)", "(2 / (5 + 5))"),
+                arguments("-(5 + 5)", "(-(5 + 5))"),
+                arguments("!(true == true)", "(!(true == true))")
         );
     }
 

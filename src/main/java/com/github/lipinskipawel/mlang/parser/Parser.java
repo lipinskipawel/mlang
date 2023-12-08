@@ -37,10 +37,12 @@ import static com.github.lipinskipawel.mlang.token.TokenType.FALSE;
 import static com.github.lipinskipawel.mlang.token.TokenType.GT;
 import static com.github.lipinskipawel.mlang.token.TokenType.IDENT;
 import static com.github.lipinskipawel.mlang.token.TokenType.INT;
+import static com.github.lipinskipawel.mlang.token.TokenType.LPAREN;
 import static com.github.lipinskipawel.mlang.token.TokenType.LT;
 import static com.github.lipinskipawel.mlang.token.TokenType.MINUS;
 import static com.github.lipinskipawel.mlang.token.TokenType.NOT_EQ;
 import static com.github.lipinskipawel.mlang.token.TokenType.PLUS;
+import static com.github.lipinskipawel.mlang.token.TokenType.RPAREN;
 import static com.github.lipinskipawel.mlang.token.TokenType.SEMICOLON;
 import static com.github.lipinskipawel.mlang.token.TokenType.SLASH;
 import static com.github.lipinskipawel.mlang.token.TokenType.TRUE;
@@ -79,6 +81,7 @@ public final class Parser {
         registerPrefix(MINUS, this::parsePrefixExpression);
         registerPrefix(TRUE, this::parseBoolean);
         registerPrefix(FALSE, this::parseBoolean);
+        registerPrefix(LPAREN, this::parseGroupedExpression);
         registerInfix(PLUS, this::parseInfixExpression);
         registerInfix(MINUS, this::parseInfixExpression);
         registerInfix(SLASH, this::parseInfixExpression);
@@ -210,6 +213,17 @@ public final class Parser {
 
     private Expression parseBoolean() {
         return new BooleanExpression(currentToken, curTokenIs(TRUE));
+    }
+
+    private Expression parseGroupedExpression() {
+        nextToken();
+
+        var expression = parseExpression(LOWEST);
+        if (!expectPeek(RPAREN)) {
+            return null;
+        }
+
+        return expression;
     }
 
     private Expression parseInfixExpression(Expression left) {
