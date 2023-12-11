@@ -4,9 +4,11 @@ import com.github.lipinskipawel.mlang.ast.Program;
 import com.github.lipinskipawel.mlang.ast.expression.BooleanExpression;
 import com.github.lipinskipawel.mlang.ast.expression.Expression;
 import com.github.lipinskipawel.mlang.ast.expression.Identifier;
+import com.github.lipinskipawel.mlang.ast.expression.IfExpression;
 import com.github.lipinskipawel.mlang.ast.expression.InfixExpression;
 import com.github.lipinskipawel.mlang.ast.expression.IntegerLiteral;
 import com.github.lipinskipawel.mlang.ast.expression.PrefixExpression;
+import com.github.lipinskipawel.mlang.ast.statement.BlockStatement;
 import com.github.lipinskipawel.mlang.ast.statement.ExpressionStatement;
 import com.github.lipinskipawel.mlang.ast.statement.LetStatement;
 import com.github.lipinskipawel.mlang.ast.statement.ReturnStatement;
@@ -31,17 +33,21 @@ import static com.github.lipinskipawel.mlang.parser.Precedence.SUM;
 import static com.github.lipinskipawel.mlang.token.TokenType.ASSIGN;
 import static com.github.lipinskipawel.mlang.token.TokenType.ASTERISK;
 import static com.github.lipinskipawel.mlang.token.TokenType.BANG;
+import static com.github.lipinskipawel.mlang.token.TokenType.ELSE;
 import static com.github.lipinskipawel.mlang.token.TokenType.EOF;
 import static com.github.lipinskipawel.mlang.token.TokenType.EQ;
 import static com.github.lipinskipawel.mlang.token.TokenType.FALSE;
 import static com.github.lipinskipawel.mlang.token.TokenType.GT;
 import static com.github.lipinskipawel.mlang.token.TokenType.IDENT;
+import static com.github.lipinskipawel.mlang.token.TokenType.IF;
 import static com.github.lipinskipawel.mlang.token.TokenType.INT;
+import static com.github.lipinskipawel.mlang.token.TokenType.LBRACE;
 import static com.github.lipinskipawel.mlang.token.TokenType.LPAREN;
 import static com.github.lipinskipawel.mlang.token.TokenType.LT;
 import static com.github.lipinskipawel.mlang.token.TokenType.MINUS;
 import static com.github.lipinskipawel.mlang.token.TokenType.NOT_EQ;
 import static com.github.lipinskipawel.mlang.token.TokenType.PLUS;
+import static com.github.lipinskipawel.mlang.token.TokenType.RBRACE;
 import static com.github.lipinskipawel.mlang.token.TokenType.RPAREN;
 import static com.github.lipinskipawel.mlang.token.TokenType.SEMICOLON;
 import static com.github.lipinskipawel.mlang.token.TokenType.SLASH;
@@ -82,6 +88,7 @@ public final class Parser {
         registerPrefix(TRUE, this::parseBoolean);
         registerPrefix(FALSE, this::parseBoolean);
         registerPrefix(LPAREN, this::parseGroupedExpression);
+        registerPrefix(IF, this::parseIfExpression);
         registerInfix(PLUS, this::parseInfixExpression);
         registerInfix(MINUS, this::parseInfixExpression);
         registerInfix(SLASH, this::parseInfixExpression);
@@ -224,6 +231,58 @@ public final class Parser {
         }
 
         return expression;
+    }
+
+    private Expression parseIfExpression() {
+        final var ifExpression = new IfExpression(currentToken);
+
+        if (!expectPeek(LPAREN)) {
+            return null;
+        }
+
+        nextToken();
+        final var condition = parseExpression(LOWEST);
+        ifExpression.condition(condition);
+
+        if (!expectPeek(RPAREN)) {
+            return null;
+        }
+
+        if (!expectPeek(LBRACE)) {
+            return null;
+        }
+
+        final var consequence = parseBlockStatement();
+        ifExpression.consequence(consequence);
+
+        if (peekTokenIs(ELSE)) {
+            nextToken();
+
+            if (!expectPeek(LBRACE)) {
+                return null;
+            }
+
+            final var alternative = parseBlockStatement();
+            ifExpression.alternative(alternative);
+        }
+
+        return ifExpression;
+    }
+
+    private BlockStatement parseBlockStatement() {
+        final var blockStatement = new BlockStatement(currentToken);
+        final List<Statement> statements = new ArrayList<>();
+        nextToken();
+
+        while (!curTokenIs(RBRACE) && !curTokenIs(EOF)) {
+            final var statement = parseStatement();
+            if (statement != null) {
+                statements.add(statement);
+            }
+            nextToken();
+        }
+        blockStatement.statements(statements);
+        return blockStatement;
     }
 
     private Expression parseInfixExpression(Expression left) {

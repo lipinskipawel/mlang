@@ -3,6 +3,7 @@ package com.github.lipinskipawel.mlang.parser;
 import com.github.lipinskipawel.mlang.ast.expression.BooleanExpression;
 import com.github.lipinskipawel.mlang.ast.expression.Expression;
 import com.github.lipinskipawel.mlang.ast.expression.Identifier;
+import com.github.lipinskipawel.mlang.ast.expression.IfExpression;
 import com.github.lipinskipawel.mlang.ast.expression.InfixExpression;
 import com.github.lipinskipawel.mlang.ast.expression.IntegerLiteral;
 import com.github.lipinskipawel.mlang.ast.expression.PrefixExpression;
@@ -272,6 +273,75 @@ final class ParserTest implements WithAssertions {
         testLiteralExpression(expressionStatement.expression(), true);
     }
 
+    @Test
+    void should_parse_if_expression() {
+        var input = "if (x < y) { x }";
+
+        var lexer = lexer(input);
+        var parser = new Parser(lexer);
+        var program = parser.parseProgram();
+        checkParseErrors(parser);
+
+        assertThat(program.programStatements().size()).isEqualTo(1);
+
+        var statement = program.programStatements().get(0);
+        assertThat(statement).isInstanceOf(ExpressionStatement.class);
+
+        var expressionStatement = (ExpressionStatement) statement;
+        var expression = expressionStatement.expression();
+        assertThat(expression).isInstanceOf(IfExpression.class);
+
+        var ifExpression = (IfExpression) expression;
+
+        testInfixExpression(ifExpression.condition(), "x", "<", "y");
+
+        assertThat(ifExpression.consequence().statements()).satisfies(
+                statements -> assertThat(statements.size()).isEqualTo(1),
+                statements -> assertThat(statements.get(0)).isInstanceOf(ExpressionStatement.class)
+        );
+        var consequenceExpression = (ExpressionStatement) ifExpression.consequence().statements().get(0);
+        testIdentifier(consequenceExpression.expression(), "x");
+
+        assertThat(ifExpression.alternative()).isNull();
+    }
+
+    @Test
+    void should_parse_if_else_expression() {
+        var input = "if (x < y) { x } else { y }";
+
+        var lexer = lexer(input);
+        var parser = new Parser(lexer);
+        var program = parser.parseProgram();
+        checkParseErrors(parser);
+
+        assertThat(program.programStatements().size()).isEqualTo(1);
+
+        var statement = program.programStatements().get(0);
+        assertThat(statement).isInstanceOf(ExpressionStatement.class);
+
+        var expressionStatement = (ExpressionStatement) statement;
+        var expression = expressionStatement.expression();
+        assertThat(expression).isInstanceOf(IfExpression.class);
+
+        var ifExpression = (IfExpression) expression;
+
+        testInfixExpression(ifExpression.condition(), "x", "<", "y");
+
+        assertThat(ifExpression.consequence().statements()).satisfies(
+                statements -> assertThat(statements.size()).isEqualTo(1),
+                statements -> assertThat(statements.get(0)).isInstanceOf(ExpressionStatement.class)
+        );
+        var consequenceExpression = (ExpressionStatement) ifExpression.consequence().statements().get(0);
+        testIdentifier(consequenceExpression.expression(), "x");
+
+        assertThat(ifExpression.alternative().statements()).satisfies(
+                statements -> assertThat(statements.size()).isEqualTo(1),
+                statements -> assertThat(statements.get(0)).isInstanceOf(ExpressionStatement.class)
+        );
+        var alternativeExpression = (ExpressionStatement) ifExpression.alternative().statements().get(0);
+        testIdentifier(alternativeExpression.expression(), "y");
+    }
+
     private void testInfixExpression(Expression expression, Object left, String operator, Object right) {
         assertThat(expression).isInstanceOf(InfixExpression.class);
         var infixExpression = (InfixExpression) expression;
@@ -294,24 +364,30 @@ final class ParserTest implements WithAssertions {
         assertThat(expression).isInstanceOf(IntegerLiteral.class);
         var integerLiteral = (IntegerLiteral) expression;
 
-        assertThat(integerLiteral.value()).isEqualTo(value);
-        assertThat(integerLiteral.tokenLiteral()).isEqualTo(String.valueOf(value));
+        assertThat(integerLiteral).satisfies(
+                literal -> assertThat(literal.value()).isEqualTo(value),
+                literal -> assertThat(literal.tokenLiteral()).isEqualTo(String.valueOf(value))
+        );
     }
 
     private void testIdentifier(Expression expression, String value) {
         assertThat(expression).isInstanceOf(Identifier.class);
         var identifier = (Identifier) expression;
 
-        assertThat(identifier.value()).isEqualTo(value);
-        assertThat(identifier.tokenLiteral()).isEqualTo(value);
+        assertThat(identifier).satisfies(
+                ident -> assertThat(ident.value()).isEqualTo(value),
+                ident -> assertThat(ident.tokenLiteral()).isEqualTo(value)
+        );
     }
 
     private void testBoolean(Expression expression, boolean bool) {
         assertThat(expression).isInstanceOf(BooleanExpression.class);
         var booleanExpression = (BooleanExpression) expression;
 
-        assertThat(booleanExpression.value()).isEqualTo(bool);
-        assertThat(booleanExpression.tokenLiteral()).isEqualTo(String.valueOf(bool));
+        assertThat(booleanExpression).satisfies(
+                booleanExp -> assertThat(booleanExp.value()).isEqualTo(bool),
+                booleanExp -> assertThat(booleanExp.tokenLiteral()).isEqualTo(String.valueOf(bool))
+        );
     }
 
     private void checkParseErrors(Parser parser) {
