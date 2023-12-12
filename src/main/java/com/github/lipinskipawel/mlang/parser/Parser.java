@@ -2,7 +2,9 @@ package com.github.lipinskipawel.mlang.parser;
 
 import com.github.lipinskipawel.mlang.ast.Program;
 import com.github.lipinskipawel.mlang.ast.expression.BooleanExpression;
+import com.github.lipinskipawel.mlang.ast.expression.CallExpression;
 import com.github.lipinskipawel.mlang.ast.expression.Expression;
+import com.github.lipinskipawel.mlang.ast.expression.FunctionLiteral;
 import com.github.lipinskipawel.mlang.ast.expression.Identifier;
 import com.github.lipinskipawel.mlang.ast.expression.IfExpression;
 import com.github.lipinskipawel.mlang.ast.expression.InfixExpression;
@@ -24,6 +26,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import static com.github.lipinskipawel.mlang.parser.Precedence.CALL;
 import static com.github.lipinskipawel.mlang.parser.Precedence.EQUALS;
 import static com.github.lipinskipawel.mlang.parser.Precedence.LESSGREATER;
 import static com.github.lipinskipawel.mlang.parser.Precedence.LOWEST;
@@ -33,10 +36,12 @@ import static com.github.lipinskipawel.mlang.parser.Precedence.SUM;
 import static com.github.lipinskipawel.mlang.token.TokenType.ASSIGN;
 import static com.github.lipinskipawel.mlang.token.TokenType.ASTERISK;
 import static com.github.lipinskipawel.mlang.token.TokenType.BANG;
+import static com.github.lipinskipawel.mlang.token.TokenType.COMMA;
 import static com.github.lipinskipawel.mlang.token.TokenType.ELSE;
 import static com.github.lipinskipawel.mlang.token.TokenType.EOF;
 import static com.github.lipinskipawel.mlang.token.TokenType.EQ;
 import static com.github.lipinskipawel.mlang.token.TokenType.FALSE;
+import static com.github.lipinskipawel.mlang.token.TokenType.FUNCTION;
 import static com.github.lipinskipawel.mlang.token.TokenType.GT;
 import static com.github.lipinskipawel.mlang.token.TokenType.IDENT;
 import static com.github.lipinskipawel.mlang.token.TokenType.IF;
@@ -70,7 +75,8 @@ public final class Parser {
             PLUS, SUM,
             MINUS, SUM,
             SLASH, PRODUCT,
-            ASTERISK, PRODUCT
+            ASTERISK, PRODUCT,
+            LPAREN, CALL
     );
 
     public Parser(Lexer lexer) {
@@ -89,6 +95,8 @@ public final class Parser {
         registerPrefix(FALSE, this::parseBoolean);
         registerPrefix(LPAREN, this::parseGroupedExpression);
         registerPrefix(IF, this::parseIfExpression);
+        registerPrefix(FUNCTION, this::parseFunctionLiteral);
+
         registerInfix(PLUS, this::parseInfixExpression);
         registerInfix(MINUS, this::parseInfixExpression);
         registerInfix(SLASH, this::parseInfixExpression);
@@ -97,6 +105,7 @@ public final class Parser {
         registerInfix(NOT_EQ, this::parseInfixExpression);
         registerInfix(LT, this::parseInfixExpression);
         registerInfix(GT, this::parseInfixExpression);
+        registerInfix(LPAREN, this::parseCallExpression);
     }
 
     private void nextToken() {
@@ -271,7 +280,7 @@ public final class Parser {
 
     private BlockStatement parseBlockStatement() {
         final var blockStatement = new BlockStatement(currentToken);
-        final List<Statement> statements = new ArrayList<>();
+        final var statements = new ArrayList<Statement>();
         nextToken();
 
         while (!curTokenIs(RBRACE) && !curTokenIs(EOF)) {
@@ -285,6 +294,52 @@ public final class Parser {
         return blockStatement;
     }
 
+    private Expression parseFunctionLiteral() {
+        final var functionLiteral = new FunctionLiteral(currentToken);
+
+        if (!expectPeek(LPAREN)) {
+            return null;
+        }
+
+        final var parameters = parseFunctionParameters();
+        functionLiteral.parameters(parameters);
+
+        if (!expectPeek(LBRACE)) {
+            return null;
+        }
+
+        final var body = parseBlockStatement();
+        functionLiteral.body(body);
+
+        return functionLiteral;
+    }
+
+    private List<Identifier> parseFunctionParameters() {
+        final var identifiers = new ArrayList<Identifier>();
+
+        if (peekTokenIs(RPAREN)) {
+            nextToken();
+            return identifiers;
+        }
+
+        nextToken();
+        final var identifier = new Identifier(currentToken, currentToken.literal());
+        identifiers.add(identifier);
+
+        while (peekTokenIs(COMMA)) {
+            nextToken();
+            nextToken();
+            final var anotherIdentifier = new Identifier(currentToken, currentToken.literal());
+            identifiers.add(anotherIdentifier);
+        }
+
+        if (!expectPeek(RPAREN)) {
+            return null;
+        }
+
+        return identifiers;
+    }
+
     private Expression parseInfixExpression(Expression left) {
         final var infixExpression = new InfixExpression(currentToken, left, currentToken.literal());
 
@@ -293,6 +348,39 @@ public final class Parser {
         infixExpression.right(parseExpression(precedence));
 
         return infixExpression;
+    }
+
+    private Expression parseCallExpression(Expression function) {
+        final var callExpression = new CallExpression(currentToken, function);
+
+        final var arguments = parseCallArguments();
+        callExpression.arguments(arguments);
+
+        return callExpression;
+    }
+
+    private List<Expression> parseCallArguments() {
+        final var arguments = new ArrayList<Expression>();
+
+        if (peekTokenIs(RPAREN)) {
+            nextToken();
+            return arguments;
+        }
+
+        nextToken();
+        arguments.add(parseExpression(LOWEST));
+
+        while (peekTokenIs(COMMA)) {
+            nextToken();
+            nextToken();
+            arguments.add(parseExpression(LOWEST));
+        }
+
+        if (!expectPeek(RPAREN)) {
+            return null;
+        }
+
+        return arguments;
     }
 
     private void registerPrefix(TokenType type, Supplier<Expression> prefixParseFn) {

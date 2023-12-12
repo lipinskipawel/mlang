@@ -1,7 +1,9 @@
 package com.github.lipinskipawel.mlang.parser;
 
 import com.github.lipinskipawel.mlang.ast.expression.BooleanExpression;
+import com.github.lipinskipawel.mlang.ast.expression.CallExpression;
 import com.github.lipinskipawel.mlang.ast.expression.Expression;
+import com.github.lipinskipawel.mlang.ast.expression.FunctionLiteral;
 import com.github.lipinskipawel.mlang.ast.expression.Identifier;
 import com.github.lipinskipawel.mlang.ast.expression.IfExpression;
 import com.github.lipinskipawel.mlang.ast.expression.InfixExpression;
@@ -25,6 +27,7 @@ import java.util.stream.Stream;
 import static com.github.lipinskipawel.mlang.ast.Program.givenProgram;
 import static com.github.lipinskipawel.mlang.lexer.Lexer.lexer;
 import static com.github.lipinskipawel.mlang.token.TokenType.IDENT;
+import static java.util.Collections.emptyList;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 final class ParserTest implements WithAssertions {
@@ -239,7 +242,11 @@ final class ParserTest implements WithAssertions {
                 arguments("(5 + 5) * 2", "((5 + 5) * 2)"),
                 arguments("2 / (5 + 5)", "(2 / (5 + 5))"),
                 arguments("-(5 + 5)", "(-(5 + 5))"),
-                arguments("!(true == true)", "(!(true == true))")
+                arguments("!(true == true)", "(!(true == true))"),
+
+                arguments("a + add(b * c) + d", "((a + add((b * c))) + d)"),
+                arguments("add(a, b, 1, 2 * 3, 4 + 5, add(6, 7 * 8))", "add(a, b, 1, (2 * 3), (4 + 5), add(6, (7 * 8)))"),
+                arguments("add(a + b + c * d / f + g)", "add((((a + b) + ((c * d) / f)) + g))")
         );
     }
 
@@ -315,7 +322,6 @@ final class ParserTest implements WithAssertions {
         checkParseErrors(parser);
 
         assertThat(program.programStatements().size()).isEqualTo(1);
-
         var statement = program.programStatements().get(0);
         assertThat(statement).isInstanceOf(ExpressionStatement.class);
 
@@ -340,6 +346,133 @@ final class ParserTest implements WithAssertions {
         );
         var alternativeExpression = (ExpressionStatement) ifExpression.alternative().statements().get(0);
         testIdentifier(alternativeExpression.expression(), "y");
+    }
+
+    @Test
+    void should_parse_function_literal() {
+        var input = "fn(x, y) { x + y; }";
+
+        var lexer = lexer(input);
+        var parser = new Parser(lexer);
+        var program = parser.parseProgram();
+        checkParseErrors(parser);
+
+        assertThat(program.programStatements().size()).isEqualTo(1);
+        var statement = program.programStatements().get(0);
+
+        assertThat(statement).isInstanceOf(ExpressionStatement.class);
+        var expressionStatement = (ExpressionStatement) statement;
+
+        assertThat(expressionStatement.expression()).isInstanceOf(FunctionLiteral.class);
+        var functionLiteral = (FunctionLiteral) expressionStatement.expression();
+
+        assertThat(functionLiteral).satisfies(
+                funParams -> assertThat(funParams.parameters().size()).isEqualTo(2),
+                funParams -> testLiteralExpression(funParams.parameters().get(0), "x"),
+                funParams -> testLiteralExpression(funParams.parameters().get(1), "y")
+        );
+
+        assertThat(functionLiteral).satisfies(
+                funBody -> assertThat(funBody.body().statements().size()).isEqualTo(1),
+                funBody -> assertThat(funBody.body().statements().get(0)).isInstanceOf(ExpressionStatement.class),
+                funBody -> {
+                    var bodyStatement = (ExpressionStatement) funBody.body().statements().get(0);
+                    testInfixExpression(bodyStatement.expression(), "x", "+", "y");
+                }
+        );
+    }
+
+    private static Stream<Arguments> functions() {
+        return Stream.of(
+                arguments("fn() {};", emptyList()),
+                arguments("fn(x) {};", List.of("x")),
+                arguments("fn(x, y) {};", List.of("x", "y"))
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("functions")
+    void should_parse_function_parameters(String input, List<String> expected) {
+        var lexer = lexer(input);
+        var parser = new Parser(lexer);
+        var program = parser.parseProgram();
+        checkParseErrors(parser);
+
+        assertThat(program.programStatements()).satisfies(
+                statements -> assertThat(statements.size()).isEqualTo(1),
+                statements -> assertThat(statements.get(0)).isInstanceOf(ExpressionStatement.class)
+        );
+        var expression = (ExpressionStatement) program.programStatements().get(0);
+        assertThat(expression.expression()).isInstanceOf(FunctionLiteral.class);
+        var function = (FunctionLiteral) expression.expression();
+
+        assertThat(function.parameters().size()).isEqualTo(expected.size());
+        for (var i = 0; i < expected.size(); i++) {
+            testLiteralExpression(function.parameters().get(i), expected.get(i));
+        }
+    }
+
+    @Test
+    void should_parse_call_expression() {
+        var input = "add(1, 2 * 3, 4 + 5);";
+
+        var lexer = lexer(input);
+        var parser = new Parser(lexer);
+        var program = parser.parseProgram();
+        checkParseErrors(parser);
+
+        assertThat(program.programStatements()).satisfies(
+                statements -> assertThat(statements.size()).isEqualTo(1),
+                statements -> assertThat(statements.get(0)).isInstanceOf(ExpressionStatement.class)
+        );
+        var expression = (ExpressionStatement) program.programStatements().get(0);
+        assertThat(expression.expression()).isInstanceOf(CallExpression.class);
+        var callExpression = (CallExpression) expression.expression();
+
+        assertThat(callExpression).satisfies(
+                callExp -> testIdentifier(callExp.function(), "add"),
+                callExp -> assertThat(callExp.arguments().size()).isEqualTo(3),
+                callExp -> {
+                    testLiteralExpression(callExp.arguments().get(0), 1);
+                    testInfixExpression(callExp.arguments().get(1), 2, "*", 3);
+                    testInfixExpression(callExp.arguments().get(2), 4, "+", 5);
+                }
+        );
+    }
+
+    private static Stream<Arguments> args() {
+        return Stream.of(
+                arguments("add();", "add", emptyList()),
+                arguments("add(1);", "add", List.of("1")),
+                arguments("add(1, 2 * 3, 4 + 5);", "add", List.of("1", "(2 * 3)", "(4 + 5)"))
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("args")
+    void should_parse_call_expression_parameters(String input, String identifier, List<String> parameters) {
+        var lexer = lexer(input);
+        var parser = new Parser(lexer);
+        var program = parser.parseProgram();
+        checkParseErrors(parser);
+
+        assertThat(program.programStatements()).satisfies(
+                statements -> assertThat(statements.size()).isEqualTo(1),
+                statements -> assertThat(statements.get(0)).isInstanceOf(ExpressionStatement.class)
+        );
+        var expression = (ExpressionStatement) program.programStatements().get(0);
+        assertThat(expression.expression()).isInstanceOf(CallExpression.class);
+        var callExpression = (CallExpression) expression.expression();
+
+        assertThat(callExpression).satisfies(
+                callExp -> testIdentifier(callExpression.function(), identifier),
+                callExp -> {
+                    assertThat(callExp.arguments().size()).isEqualTo(parameters.size());
+                    for (var i = 0; i < parameters.size(); i++) {
+                        assertThat(callExp.arguments().get(i).string()).isEqualTo(parameters.get(i));
+                    }
+                }
+        );
     }
 
     private void testInfixExpression(Expression expression, Object left, String operator, Object right) {
