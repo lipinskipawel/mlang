@@ -146,8 +146,12 @@ public final class Parser {
         if (!expectPeek(ASSIGN)) {
             return null;
         }
+        nextToken();
 
-        while (!curTokenIs(SEMICOLON)) {
+        final var value = parseExpression(LOWEST);
+        letStatement.value(value);
+
+        if (peekTokenIs(SEMICOLON)) {
             nextToken();
         }
 
@@ -158,7 +162,11 @@ public final class Parser {
         var returnStatement = new ReturnStatement(currentToken);
 
         nextToken();
-        while (!curTokenIs(SEMICOLON)) {
+
+        final var value = parseExpression(LOWEST);
+        returnStatement.returnValue(value);
+
+        if (peekTokenIs(SEMICOLON)) {
             nextToken();
         }
 

@@ -36,4 +36,12 @@ public final class ReturnStatement extends Statement {
     public void statementNode() {
 
     }
+
+    public void returnValue(Expression expression) {
+        this.returnValue = expression;
+    }
+
+    public Expression returnValue() {
+        return returnValue;
+    }
 }

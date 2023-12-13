@@ -51,6 +51,10 @@ public final class LetStatement extends Statement {
         return name;
     }
 
+    public void value(Expression expression) {
+        this.value = expression;
+    }
+
     public Expression value() {
         return value;
     }
