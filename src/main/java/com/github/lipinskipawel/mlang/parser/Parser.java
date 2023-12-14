@@ -113,7 +113,7 @@ public final class Parser {
         this.peekToken = lexer.nextToken();
     }
 
-    Program parseProgram() {
+    public Program parseProgram() {
         final var program = new Program();
 
         while (!curTokenIs(EOF)) {
