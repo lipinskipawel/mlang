@@ -2,8 +2,12 @@ package com.github.lipinskipawel.mlang.evaluator.objects;
 
 import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.BOOLEAN_OBJ;
 
-final class MonkeyBoolean extends MonkeyObject {
-    private boolean value;
+public final class MonkeyBoolean extends MonkeyObject {
+    private final boolean value;
+
+    public MonkeyBoolean(boolean value) {
+        this.value = value;
+    }
 
     @Override
     public ObjectType type() {
@@ -13,5 +17,9 @@ final class MonkeyBoolean extends MonkeyObject {
     @Override
     public String inspect() {
         return String.valueOf(value);
+    }
+
+    public boolean value() {
+        return value;
     }
 }
