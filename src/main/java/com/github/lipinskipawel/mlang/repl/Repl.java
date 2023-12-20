@@ -1,5 +1,6 @@
 package com.github.lipinskipawel.mlang.repl;
 
+import com.github.lipinskipawel.mlang.evaluator.Evaluator;
 import com.github.lipinskipawel.mlang.parser.Parser;
 
 import java.io.InputStream;
@@ -41,7 +42,10 @@ final class Repl {
                     continue;
                 }
 
-                output.println(program.string());
+                final var evaluated = Evaluator.eval(program);
+                if (evaluated != null) {
+                    output.println(evaluated.inspect());
+                }
             }
         }
     }
