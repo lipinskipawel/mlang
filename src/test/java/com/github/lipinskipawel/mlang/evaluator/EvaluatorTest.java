@@ -1,5 +1,6 @@
 package com.github.lipinskipawel.mlang.evaluator;
 
+import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyBoolean;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyInteger;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyObject;
 import com.github.lipinskipawel.mlang.parser.Parser;
@@ -27,7 +28,23 @@ final class EvaluatorTest implements WithAssertions {
     @MethodSource("integers")
     void should_eval_integer_expression(String input, int expected) {
         var evaluated = testEval(input);
+
         testIntegerObject(evaluated, expected);
+    }
+
+    static Stream<Arguments> booleans() {
+        return Stream.of(
+                arguments("true", true),
+                arguments("false", false)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("booleans")
+    void should_eval_boolean_expression(String input, boolean expected) {
+        var evaluated = testEval(input);
+
+        testBooleanObject(evaluated, expected);
     }
 
     private MonkeyObject testEval(String input) {
@@ -44,6 +61,16 @@ final class EvaluatorTest implements WithAssertions {
                 object -> {
                     var integer = (MonkeyInteger) object;
                     assertThat(integer.value()).isEqualTo(expected);
+                }
+        );
+    }
+
+    private void testBooleanObject(MonkeyObject monkeyObject, boolean expected) {
+        assertThat(monkeyObject).satisfies(
+                object -> assertThat(object).isInstanceOf(MonkeyBoolean.class),
+                object -> {
+                    var bool = (MonkeyBoolean) object;
+                    assertThat(bool.value()).isEqualTo(expected);
                 }
         );
     }
