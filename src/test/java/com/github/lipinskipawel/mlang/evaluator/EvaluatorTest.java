@@ -20,7 +20,9 @@ final class EvaluatorTest implements WithAssertions {
     static Stream<Arguments> integers() {
         return Stream.of(
                 arguments("5", 5),
-                arguments("10", 10)
+                arguments("10", 10),
+                arguments("-5", -5),
+                arguments("-10", -10)
         );
     }
 
@@ -42,6 +44,25 @@ final class EvaluatorTest implements WithAssertions {
     @ParameterizedTest
     @MethodSource("booleans")
     void should_eval_boolean_expression(String input, boolean expected) {
+        var evaluated = testEval(input);
+
+        testBooleanObject(evaluated, expected);
+    }
+
+    static Stream<Arguments> bangs() {
+        return Stream.of(
+                arguments("!true", false),
+                arguments("!false", true),
+                arguments("!5", false),
+                arguments("!!true", true),
+                arguments("!!false", false),
+                arguments("!!5", true)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("bangs")
+    void should_eval_bang_operator(String input, boolean expected) {
         var evaluated = testEval(input);
 
         testBooleanObject(evaluated, expected);
