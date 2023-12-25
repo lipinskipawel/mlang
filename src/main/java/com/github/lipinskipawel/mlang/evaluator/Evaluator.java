@@ -3,6 +3,7 @@ package com.github.lipinskipawel.mlang.evaluator;
 import com.github.lipinskipawel.mlang.ast.Node;
 import com.github.lipinskipawel.mlang.ast.Program;
 import com.github.lipinskipawel.mlang.ast.expression.BooleanExpression;
+import com.github.lipinskipawel.mlang.ast.expression.InfixExpression;
 import com.github.lipinskipawel.mlang.ast.expression.IntegerLiteral;
 import com.github.lipinskipawel.mlang.ast.expression.PrefixExpression;
 import com.github.lipinskipawel.mlang.ast.statement.ExpressionStatement;
@@ -21,7 +22,15 @@ public final class Evaluator {
     private static final MonkeyBoolean TRUE = new MonkeyBoolean(true);
     private static final MonkeyBoolean FALSE = new MonkeyBoolean(false);
 
-    public static MonkeyObject eval(Node node) {
+    private Evaluator() {
+
+    }
+
+    public static Evaluator evaluator() {
+        return new Evaluator();
+    }
+
+    public MonkeyObject eval(Node node) {
         return switch (node) {
             // statements
             case Program program -> evalStatements(program.programStatements());
@@ -35,11 +44,16 @@ public final class Evaluator {
                 final var right = eval(prefix.right());
                 yield evalPrefixExpression(prefix.operator(), right);
             }
+            case InfixExpression infix -> {
+                final var left = eval(infix.left());
+                final var right = eval(infix.right());
+                yield evalInfixExpression(infix.operator(), left, right);
+            }
             default -> null;
         };
     }
 
-    private static MonkeyObject evalStatements(List<Statement> statements) {
+    private MonkeyObject evalStatements(List<Statement> statements) {
         MonkeyObject result = null;
 
         for (var statement : statements) {
@@ -49,7 +63,7 @@ public final class Evaluator {
         return result;
     }
 
-    private static MonkeyObject evalPrefixExpression(String operator, MonkeyObject right) {
+    private MonkeyObject evalPrefixExpression(String operator, MonkeyObject right) {
         return switch (operator) {
             case "!" -> evalBangOperatorExpression(right);
             case "-" -> evalMinusOperatorExpression(right);
@@ -57,7 +71,7 @@ public final class Evaluator {
         };
     }
 
-    private static MonkeyObject evalBangOperatorExpression(MonkeyObject right) {
+    private MonkeyObject evalBangOperatorExpression(MonkeyObject right) {
         return switch (right) {
             case MonkeyBoolean bool -> {
                 if (bool.value()) {
@@ -70,16 +84,40 @@ public final class Evaluator {
         };
     }
 
-    private static MonkeyObject evalMinusOperatorExpression(MonkeyObject right) {
+    private MonkeyObject evalMinusOperatorExpression(MonkeyObject right) {
         if (right.type() != INTEGER_OBJ) {
             return NULL;
         }
-
         return new MonkeyInteger(-((MonkeyInteger) (right)).value());
-
     }
 
-    private static MonkeyBoolean nativeBoolToMonkeyBoolean(boolean bool) {
+    private MonkeyObject evalInfixExpression(String operator, MonkeyObject left, MonkeyObject right) {
+        if (left.type() == INTEGER_OBJ && right.type() == INTEGER_OBJ) {
+            return evalIntegerInfixExpression(operator, (MonkeyInteger) left, (MonkeyInteger) right);
+        }
+        return switch (operator) {
+            case "==" -> nativeBoolToMonkeyBoolean(left == right);
+            case "!=" -> nativeBoolToMonkeyBoolean(left != right);
+            default -> NULL;
+        };
+    }
+
+    private MonkeyObject evalIntegerInfixExpression(String operator, MonkeyInteger left, MonkeyInteger right) {
+        return switch (operator) {
+            case "+" -> new MonkeyInteger(left.value() + right.value());
+            case "-" -> new MonkeyInteger(left.value() - right.value());
+            case "*" -> new MonkeyInteger(left.value() * right.value());
+            case "/" -> new MonkeyInteger(left.value() / right.value());
+
+            case "<" -> nativeBoolToMonkeyBoolean(left.value() < right.value());
+            case ">" -> nativeBoolToMonkeyBoolean(left.value() > right.value());
+            case "==" -> nativeBoolToMonkeyBoolean(left.value() == right.value());
+            case "!=" -> nativeBoolToMonkeyBoolean(left.value() != right.value());
+            default -> NULL;
+        };
+    }
+
+    private MonkeyBoolean nativeBoolToMonkeyBoolean(boolean bool) {
         return bool ? TRUE : FALSE;
     }
 }

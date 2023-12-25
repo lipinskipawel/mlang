@@ -1,6 +1,5 @@
 package com.github.lipinskipawel.mlang.repl;
 
-import com.github.lipinskipawel.mlang.evaluator.Evaluator;
 import com.github.lipinskipawel.mlang.parser.Parser;
 
 import java.io.InputStream;
@@ -8,6 +7,7 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.util.Scanner;
 
+import static com.github.lipinskipawel.mlang.evaluator.Evaluator.evaluator;
 import static com.github.lipinskipawel.mlang.lexer.Lexer.lexer;
 
 final class Repl {
@@ -42,7 +42,8 @@ final class Repl {
                     continue;
                 }
 
-                final var evaluated = Evaluator.eval(program);
+                final var evaluator = evaluator();
+                final var evaluated = evaluator.eval(program);
                 if (evaluated != null) {
                     output.println(evaluated.inspect());
                 }
