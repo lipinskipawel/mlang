@@ -3,9 +3,11 @@ package com.github.lipinskipawel.mlang.evaluator;
 import com.github.lipinskipawel.mlang.ast.Node;
 import com.github.lipinskipawel.mlang.ast.Program;
 import com.github.lipinskipawel.mlang.ast.expression.BooleanExpression;
+import com.github.lipinskipawel.mlang.ast.expression.IfExpression;
 import com.github.lipinskipawel.mlang.ast.expression.InfixExpression;
 import com.github.lipinskipawel.mlang.ast.expression.IntegerLiteral;
 import com.github.lipinskipawel.mlang.ast.expression.PrefixExpression;
+import com.github.lipinskipawel.mlang.ast.statement.BlockStatement;
 import com.github.lipinskipawel.mlang.ast.statement.ExpressionStatement;
 import com.github.lipinskipawel.mlang.ast.statement.Statement;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyBoolean;
@@ -34,6 +36,8 @@ public final class Evaluator {
         return switch (node) {
             // statements
             case Program program -> evalStatements(program.programStatements());
+            case BlockStatement block -> evalStatements(block.statements());
+            case IfExpression ifExpression -> evalIfExpression(ifExpression);
             case ExpressionStatement expressionStatement -> eval(expressionStatement.expression());
 
             // expressions
@@ -61,6 +65,26 @@ public final class Evaluator {
         }
 
         return result;
+    }
+
+    private MonkeyObject evalIfExpression(IfExpression ifExpression) {
+        final var conditional = eval(ifExpression.condition());
+
+        if (isTruthy(conditional)) {
+            return eval(ifExpression.consequence());
+        } else if (ifExpression.alternative() != null) {
+            return eval(ifExpression.alternative());
+        } else {
+            return NULL;
+        }
+    }
+
+    private boolean isTruthy(MonkeyObject object) {
+        return switch (object) {
+            case MonkeyBoolean bool -> bool.value();
+            case MonkeyNull __ -> false;
+            default -> true;
+        };
     }
 
     private MonkeyObject evalPrefixExpression(String operator, MonkeyObject right) {

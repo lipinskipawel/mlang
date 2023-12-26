@@ -2,6 +2,7 @@ package com.github.lipinskipawel.mlang.evaluator;
 
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyBoolean;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyInteger;
+import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyNull;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyObject;
 import com.github.lipinskipawel.mlang.parser.Parser;
 import org.assertj.core.api.WithAssertions;
@@ -94,6 +95,33 @@ final class EvaluatorTest implements WithAssertions {
         var evaluated = testEval(input);
 
         testBooleanObject(evaluated, expected);
+    }
+
+    static Stream<Arguments> ifElse() {
+        return Stream.of(
+                arguments("if (true) { 10 }", 10),
+                arguments("if (false) { 10 }", null),
+                arguments("if (1) { 10 }", 10),
+                arguments("if (1 < 2) { 10 }", 10),
+                arguments("if (1 > 2) { 10 }", null),
+                arguments("if (1 > 2) { 10 } else { 20 }", 20),
+                arguments("if (1 < 2) { 10 } else { 20 }", 10)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("ifElse")
+    void should_eval_if_else_expression(String input, Object expected) {
+        var evaluated = testEval(input);
+        if (expected != null) {
+            testIntegerObject(evaluated, (int) expected);
+            return;
+        }
+        testNullObject(evaluated);
+    }
+
+    private void testNullObject(MonkeyObject object) {
+        assertThat(object).isInstanceOf(MonkeyNull.class);
     }
 
     private MonkeyObject testEval(String input) {
