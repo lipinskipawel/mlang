@@ -120,6 +120,31 @@ final class EvaluatorTest implements WithAssertions {
         testNullObject(evaluated);
     }
 
+    static Stream<Arguments> returnStatements() {
+        return Stream.of(
+                arguments("return 10;", 10),
+                arguments("return 10; 9;", 10),
+                arguments("return 2 * 5; 9;", 10),
+                arguments("9; return 2 * 5; 9;", 10),
+                arguments("""
+                        if (10 > 1) {
+                          if (10 > 1) {
+                            return 10;
+                          }
+
+                          return 1;
+                        }""", 10)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("returnStatements")
+    void should_eval_return_statements(String input, int expected) {
+        var evaluated = testEval(input);
+
+        testIntegerObject(evaluated, expected);
+    }
+
     private void testNullObject(MonkeyObject object) {
         assertThat(object).isInstanceOf(MonkeyNull.class);
     }

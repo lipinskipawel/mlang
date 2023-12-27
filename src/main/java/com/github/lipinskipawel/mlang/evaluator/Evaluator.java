@@ -9,15 +9,18 @@ import com.github.lipinskipawel.mlang.ast.expression.IntegerLiteral;
 import com.github.lipinskipawel.mlang.ast.expression.PrefixExpression;
 import com.github.lipinskipawel.mlang.ast.statement.BlockStatement;
 import com.github.lipinskipawel.mlang.ast.statement.ExpressionStatement;
+import com.github.lipinskipawel.mlang.ast.statement.ReturnStatement;
 import com.github.lipinskipawel.mlang.ast.statement.Statement;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyBoolean;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyInteger;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyNull;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyObject;
+import com.github.lipinskipawel.mlang.evaluator.objects.ReturnValue;
 
 import java.util.List;
 
 import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.INTEGER_OBJ;
+import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.RETURN_VALUE_OBJ;
 
 public final class Evaluator {
     private static final MonkeyNull NULL = new MonkeyNull();
@@ -35,10 +38,14 @@ public final class Evaluator {
     public MonkeyObject eval(Node node) {
         return switch (node) {
             // statements
-            case Program program -> evalStatements(program.programStatements());
-            case BlockStatement block -> evalStatements(block.statements());
+            case Program program -> evalProgram(program.programStatements());
+            case BlockStatement block -> evalBlockStatements(block);
             case IfExpression ifExpression -> evalIfExpression(ifExpression);
             case ExpressionStatement expressionStatement -> eval(expressionStatement.expression());
+            case ReturnStatement returnStatement -> {
+                final var returned = eval(returnStatement.returnValue());
+                yield new ReturnValue(returned);
+            }
 
             // expressions
             case IntegerLiteral integer -> new MonkeyInteger(integer.value());
@@ -57,11 +64,27 @@ public final class Evaluator {
         };
     }
 
-    private MonkeyObject evalStatements(List<Statement> statements) {
+    private MonkeyObject evalProgram(List<Statement> statements) {
         MonkeyObject result = null;
 
         for (var statement : statements) {
             result = eval(statement);
+            if (result instanceof ReturnValue returnValue) {
+                return returnValue.value();
+            }
+        }
+
+        return result;
+    }
+
+    private MonkeyObject evalBlockStatements(BlockStatement block) {
+        MonkeyObject result = null;
+
+        for (var statement : block.statements()) {
+            result = eval(statement);
+            if (result != null && result.type() == RETURN_VALUE_OBJ) {
+                return result;
+            }
         }
 
         return result;
