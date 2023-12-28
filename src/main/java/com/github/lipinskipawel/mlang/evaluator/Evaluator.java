@@ -12,6 +12,7 @@ import com.github.lipinskipawel.mlang.ast.statement.ExpressionStatement;
 import com.github.lipinskipawel.mlang.ast.statement.ReturnStatement;
 import com.github.lipinskipawel.mlang.ast.statement.Statement;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyBoolean;
+import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyError;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyInteger;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyNull;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyObject;
@@ -19,6 +20,7 @@ import com.github.lipinskipawel.mlang.evaluator.objects.ReturnValue;
 
 import java.util.List;
 
+import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.ERROR_OBJ;
 import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.INTEGER_OBJ;
 import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.RETURN_VALUE_OBJ;
 
@@ -44,6 +46,9 @@ public final class Evaluator {
             case ExpressionStatement expressionStatement -> eval(expressionStatement.expression());
             case ReturnStatement returnStatement -> {
                 final var returned = eval(returnStatement.returnValue());
+                if (isError(returned)) {
+                    yield returned;
+                }
                 yield new ReturnValue(returned);
             }
 
@@ -53,15 +58,31 @@ public final class Evaluator {
 
             case PrefixExpression prefix -> {
                 final var right = eval(prefix.right());
+                if (isError(right)) {
+                    yield right;
+                }
                 yield evalPrefixExpression(prefix.operator(), right);
             }
             case InfixExpression infix -> {
                 final var left = eval(infix.left());
+                if (isError(left)) {
+                    yield left;
+                }
                 final var right = eval(infix.right());
+                if (isError(right)) {
+                    yield right;
+                }
                 yield evalInfixExpression(infix.operator(), left, right);
             }
             default -> null;
         };
+    }
+
+    private boolean isError(MonkeyObject object) {
+        if (object != null) {
+            return object.type() == ERROR_OBJ;
+        }
+        return false;
     }
 
     private MonkeyObject evalProgram(List<Statement> statements) {
@@ -71,6 +92,9 @@ public final class Evaluator {
             result = eval(statement);
             if (result instanceof ReturnValue returnValue) {
                 return returnValue.value();
+            }
+            if (result instanceof MonkeyError) {
+                return result;
             }
         }
 
@@ -82,8 +106,11 @@ public final class Evaluator {
 
         for (var statement : block.statements()) {
             result = eval(statement);
-            if (result != null && result.type() == RETURN_VALUE_OBJ) {
-                return result;
+            if (result != null) {
+                final var type = result.type();
+                if (type == RETURN_VALUE_OBJ || type == ERROR_OBJ) {
+                    return result;
+                }
             }
         }
 
@@ -114,7 +141,7 @@ public final class Evaluator {
         return switch (operator) {
             case "!" -> evalBangOperatorExpression(right);
             case "-" -> evalMinusOperatorExpression(right);
-            default -> NULL;
+            default -> newError("unknown operator: %s%s", operator, right.type());
         };
     }
 
@@ -133,7 +160,7 @@ public final class Evaluator {
 
     private MonkeyObject evalMinusOperatorExpression(MonkeyObject right) {
         if (right.type() != INTEGER_OBJ) {
-            return NULL;
+            return newError("unknown operator: -%s", right.type());
         }
         return new MonkeyInteger(-((MonkeyInteger) (right)).value());
     }
@@ -142,10 +169,13 @@ public final class Evaluator {
         if (left.type() == INTEGER_OBJ && right.type() == INTEGER_OBJ) {
             return evalIntegerInfixExpression(operator, (MonkeyInteger) left, (MonkeyInteger) right);
         }
+        if (left.type() != right.type()) {
+            return newError("type mismatch: %s %s %s", left.type(), operator, right.type());
+        }
         return switch (operator) {
             case "==" -> nativeBoolToMonkeyBoolean(left == right);
             case "!=" -> nativeBoolToMonkeyBoolean(left != right);
-            default -> NULL;
+            default -> newError("unknown operator: %s %s %s", left.type(), operator, right.type());
         };
     }
 
@@ -160,11 +190,15 @@ public final class Evaluator {
             case ">" -> nativeBoolToMonkeyBoolean(left.value() > right.value());
             case "==" -> nativeBoolToMonkeyBoolean(left.value() == right.value());
             case "!=" -> nativeBoolToMonkeyBoolean(left.value() != right.value());
-            default -> NULL;
+            default -> newError("unknown operator: %s %s %s");
         };
     }
 
     private MonkeyBoolean nativeBoolToMonkeyBoolean(boolean bool) {
         return bool ? TRUE : FALSE;
+    }
+
+    private MonkeyError newError(String message, Object... object) {
+        return new MonkeyError(message.formatted(object));
     }
 }

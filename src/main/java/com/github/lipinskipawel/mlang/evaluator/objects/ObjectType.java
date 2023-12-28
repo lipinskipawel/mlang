@@ -4,11 +4,17 @@ public enum ObjectType {
     INTEGER_OBJ("INTEGER"),
     BOOLEAN_OBJ("BOOLEAN"),
     NULL_OBJ("NULL"),
-    RETURN_VALUE_OBJ("RETURN_VALUE");
+    RETURN_VALUE_OBJ("RETURN_VALUE"),
+    ERROR_OBJ("ERROR");
 
     private final String name;
 
     ObjectType(String name) {
         this.name = name;
+    }
+
+    @Override
+    public String toString() {
+        return name;
     }
 }

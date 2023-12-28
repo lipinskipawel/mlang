@@ -1,6 +1,7 @@
 package com.github.lipinskipawel.mlang.evaluator;
 
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyBoolean;
+import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyError;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyInteger;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyNull;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyObject;
@@ -143,6 +144,39 @@ final class EvaluatorTest implements WithAssertions {
         var evaluated = testEval(input);
 
         testIntegerObject(evaluated, expected);
+    }
+
+    static Stream<Arguments> errors() {
+        return Stream.of(
+                arguments("5 + true;", "type mismatch: INTEGER + BOOLEAN"),
+                arguments("5 + true; 5;", "type mismatch: INTEGER + BOOLEAN"),
+                arguments("-true", "unknown operator: -BOOLEAN"),
+                arguments("true + false;", "unknown operator: BOOLEAN + BOOLEAN"),
+                arguments("5; true + false; 5", "unknown operator: BOOLEAN + BOOLEAN"),
+                arguments("if (10 > 1) { true + false; }", "unknown operator: BOOLEAN + BOOLEAN"),
+                arguments("""
+                        if (10 > 1) {
+                            if (10 > 1) {
+                                return true + false;
+                            }
+                            return 1;
+                        }
+                        """, "unknown operator: BOOLEAN + BOOLEAN")
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("errors")
+    void should_eval_error_handler(String input, String expected) {
+        var evaluated = testEval(input);
+
+        assertThat(evaluated).satisfies(
+                eval -> assertThat(eval).isInstanceOf(MonkeyError.class),
+                eval -> {
+                    var errorMsg = (MonkeyError) eval;
+                    assertThat(errorMsg.message()).isEqualTo(expected);
+                }
+        );
     }
 
     private void testNullObject(MonkeyObject object) {
