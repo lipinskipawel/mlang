@@ -161,7 +161,8 @@ final class EvaluatorTest implements WithAssertions {
                             }
                             return 1;
                         }
-                        """, "unknown operator: BOOLEAN + BOOLEAN")
+                        """, "unknown operator: BOOLEAN + BOOLEAN"),
+                arguments("foobar", "identifier not found: foobar")
         );
     }
 
@@ -179,6 +180,23 @@ final class EvaluatorTest implements WithAssertions {
         );
     }
 
+    static Stream<Arguments> letStatements() {
+        return Stream.of(
+                arguments("let a = 5; a;", 5),
+                arguments("let a = 5 * 5; a;", 25),
+                arguments("let a = 5; let b = a; b;", 5),
+                arguments("let a = 5; let b = a; let c = a + b + 5; c;", 15)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("letStatements")
+    void should_eval_let_statements(String input, int expected) {
+        var evaluated = testEval(input);
+
+        testIntegerObject(evaluated, expected);
+    }
+
     private void testNullObject(MonkeyObject object) {
         assertThat(object).isInstanceOf(MonkeyNull.class);
     }
@@ -187,9 +205,10 @@ final class EvaluatorTest implements WithAssertions {
         var lexer = lexer(input);
         var parser = new Parser(lexer);
         var program = parser.parseProgram();
+        var env = new Environment();
 
         var evaluator = evaluator();
-        return evaluator.eval(program);
+        return evaluator.eval(program, env);
     }
 
     private void testIntegerObject(MonkeyObject monkeyObject, int expected) {

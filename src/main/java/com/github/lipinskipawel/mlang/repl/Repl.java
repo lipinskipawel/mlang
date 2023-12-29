@@ -1,5 +1,6 @@
 package com.github.lipinskipawel.mlang.repl;
 
+import com.github.lipinskipawel.mlang.evaluator.Environment;
 import com.github.lipinskipawel.mlang.parser.Parser;
 
 import java.io.InputStream;
@@ -28,6 +29,7 @@ final class Repl {
 
     static void repl(OutputStream outputStream, InputStream inputStream) {
         final var output = new PrintStream(outputStream);
+        final var env = new Environment();
         try (var scanner = new Scanner(inputStream)) {
             while (true) {
                 output.print(PROMPT);
@@ -43,7 +45,7 @@ final class Repl {
                 }
 
                 final var evaluator = evaluator();
-                final var evaluated = evaluator.eval(program);
+                final var evaluated = evaluator.eval(program, env);
                 if (evaluated != null) {
                     output.println(evaluated.inspect());
                 }

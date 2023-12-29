@@ -3,12 +3,14 @@ package com.github.lipinskipawel.mlang.evaluator;
 import com.github.lipinskipawel.mlang.ast.Node;
 import com.github.lipinskipawel.mlang.ast.Program;
 import com.github.lipinskipawel.mlang.ast.expression.BooleanExpression;
+import com.github.lipinskipawel.mlang.ast.expression.Identifier;
 import com.github.lipinskipawel.mlang.ast.expression.IfExpression;
 import com.github.lipinskipawel.mlang.ast.expression.InfixExpression;
 import com.github.lipinskipawel.mlang.ast.expression.IntegerLiteral;
 import com.github.lipinskipawel.mlang.ast.expression.PrefixExpression;
 import com.github.lipinskipawel.mlang.ast.statement.BlockStatement;
 import com.github.lipinskipawel.mlang.ast.statement.ExpressionStatement;
+import com.github.lipinskipawel.mlang.ast.statement.LetStatement;
 import com.github.lipinskipawel.mlang.ast.statement.ReturnStatement;
 import com.github.lipinskipawel.mlang.ast.statement.Statement;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyBoolean;
@@ -37,43 +39,50 @@ public final class Evaluator {
         return new Evaluator();
     }
 
-    public MonkeyObject eval(Node node) {
+    public MonkeyObject eval(Node node, Environment environment) {
         return switch (node) {
             // statements
-            case Program program -> evalProgram(program.programStatements());
-            case BlockStatement block -> evalBlockStatements(block);
-            case IfExpression ifExpression -> evalIfExpression(ifExpression);
-            case ExpressionStatement expressionStatement -> eval(expressionStatement.expression());
+            case Program program -> evalProgram(program.programStatements(), environment);
+            case BlockStatement block -> evalBlockStatements(block, environment);
+            case ExpressionStatement expressionStatement -> eval(expressionStatement.expression(), environment);
             case ReturnStatement returnStatement -> {
-                final var returned = eval(returnStatement.returnValue());
+                final var returned = eval(returnStatement.returnValue(), environment);
                 if (isError(returned)) {
                     yield returned;
                 }
                 yield new ReturnValue(returned);
             }
+            case LetStatement letStatement -> {
+                var let = eval(letStatement.value(), environment);
+                if (isError(let)) {
+                    yield let;
+                }
+                yield environment.set(letStatement.name().value(), let);
+            }
 
             // expressions
             case IntegerLiteral integer -> new MonkeyInteger(integer.value());
             case BooleanExpression bool -> nativeBoolToMonkeyBoolean(bool.value());
-
             case PrefixExpression prefix -> {
-                final var right = eval(prefix.right());
+                final var right = eval(prefix.right(), environment);
                 if (isError(right)) {
                     yield right;
                 }
                 yield evalPrefixExpression(prefix.operator(), right);
             }
             case InfixExpression infix -> {
-                final var left = eval(infix.left());
+                final var left = eval(infix.left(), environment);
                 if (isError(left)) {
                     yield left;
                 }
-                final var right = eval(infix.right());
+                final var right = eval(infix.right(), environment);
                 if (isError(right)) {
                     yield right;
                 }
                 yield evalInfixExpression(infix.operator(), left, right);
             }
+            case IfExpression ifExpression -> evalIfExpression(ifExpression, environment);
+            case Identifier identifier -> evalIdentifier(identifier, environment);
             default -> null;
         };
     }
@@ -85,11 +94,11 @@ public final class Evaluator {
         return false;
     }
 
-    private MonkeyObject evalProgram(List<Statement> statements) {
+    private MonkeyObject evalProgram(List<Statement> statements, Environment environment) {
         MonkeyObject result = null;
 
         for (var statement : statements) {
-            result = eval(statement);
+            result = eval(statement, environment);
             if (result instanceof ReturnValue returnValue) {
                 return returnValue.value();
             }
@@ -101,11 +110,11 @@ public final class Evaluator {
         return result;
     }
 
-    private MonkeyObject evalBlockStatements(BlockStatement block) {
+    private MonkeyObject evalBlockStatements(BlockStatement block, Environment environment) {
         MonkeyObject result = null;
 
         for (var statement : block.statements()) {
-            result = eval(statement);
+            result = eval(statement, environment);
             if (result != null) {
                 final var type = result.type();
                 if (type == RETURN_VALUE_OBJ || type == ERROR_OBJ) {
@@ -117,16 +126,24 @@ public final class Evaluator {
         return result;
     }
 
-    private MonkeyObject evalIfExpression(IfExpression ifExpression) {
-        final var conditional = eval(ifExpression.condition());
+    private MonkeyObject evalIfExpression(IfExpression ifExpression, Environment environment) {
+        final var conditional = eval(ifExpression.condition(), environment);
 
         if (isTruthy(conditional)) {
-            return eval(ifExpression.consequence());
+            return eval(ifExpression.consequence(), environment);
         } else if (ifExpression.alternative() != null) {
-            return eval(ifExpression.alternative());
+            return eval(ifExpression.alternative(), environment);
         } else {
             return NULL;
         }
+    }
+
+    private MonkeyObject evalIdentifier(Identifier identifier, Environment environment) {
+        final var value = environment.get(identifier.value());
+        if (value == null) {
+            return newError("identifier not found: " + identifier.value());
+        }
+        return value;
     }
 
     private boolean isTruthy(MonkeyObject object) {
