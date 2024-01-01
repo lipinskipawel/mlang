@@ -2,11 +2,13 @@ package com.github.lipinskipawel.mlang.evaluator;
 
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyBoolean;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyError;
+import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyFunction;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyInteger;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyNull;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyObject;
 import com.github.lipinskipawel.mlang.parser.Parser;
 import org.assertj.core.api.WithAssertions;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -134,7 +136,20 @@ final class EvaluatorTest implements WithAssertions {
                           }
 
                           return 1;
-                        }""", 10)
+                        }""", 10),
+                arguments("""
+                        let f = fn(x) {
+                          return x;
+                          x + 10;
+                        };
+                        f(10);""", 10),
+                arguments("""
+                        let f = fn(x) {
+                          let result = x + 10;
+                          return result;
+                          return 10;
+                        };
+                        f(10);""", 20)
         );
     }
 
@@ -197,8 +212,59 @@ final class EvaluatorTest implements WithAssertions {
         testIntegerObject(evaluated, expected);
     }
 
+    @Test
+    void should_eval_functions() {
+        var input = "fn(x) { x + 2; };";
+
+        var evaluated = testEval(input);
+
+        assertThat(evaluated).satisfies(
+                output -> assertThat(output).isInstanceOf(MonkeyFunction.class),
+                output -> {
+                    var fn = (MonkeyFunction) output;
+                    assertThat(fn.parameters().size()).isEqualTo(1);
+                    assertThat(fn.parameters().get(0).string()).isEqualTo("x");
+                    assertThat(fn.block().string()).isEqualTo("(x + 2)");
+                }
+        );
+    }
+
+    static Stream<Arguments> functions() {
+        return Stream.of(
+                arguments("let identity = fn(x) { x; }; identity(5);", 5),
+                arguments("let identity = fn(x) { return x; }; identity(5);", 5),
+                arguments("let double = fn(x) { x * 2; }; double(5);", 10),
+                arguments("let add = fn(x, y) { x + y; }; add(5, 5);", 10),
+                arguments("let add = fn(x, y) { x + y; }; add(5 + 5, add(5, 5));", 20)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("functions")
+    void should_eval_function_calls(String input, int expected) {
+        var evaluated = testEval(input);
+
+        testIntegerObject(evaluated, expected);
+    }
+
     private void testNullObject(MonkeyObject object) {
         assertThat(object).isInstanceOf(MonkeyNull.class);
+    }
+
+    @Test
+    void should_eval_closures() {
+        var input = """
+                let newAdder = fn(x) {
+                  fn(y) { x + y; };
+                }
+
+                let addTwo = newAdder(2);
+                addTwo(2);
+                """;
+
+        var evaluated = testEval(input);
+
+        testIntegerObject(evaluated, 4);
     }
 
     private MonkeyObject testEval(String input) {

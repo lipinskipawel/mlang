@@ -3,6 +3,9 @@ package com.github.lipinskipawel.mlang.evaluator;
 import com.github.lipinskipawel.mlang.ast.Node;
 import com.github.lipinskipawel.mlang.ast.Program;
 import com.github.lipinskipawel.mlang.ast.expression.BooleanExpression;
+import com.github.lipinskipawel.mlang.ast.expression.CallExpression;
+import com.github.lipinskipawel.mlang.ast.expression.Expression;
+import com.github.lipinskipawel.mlang.ast.expression.FunctionLiteral;
 import com.github.lipinskipawel.mlang.ast.expression.Identifier;
 import com.github.lipinskipawel.mlang.ast.expression.IfExpression;
 import com.github.lipinskipawel.mlang.ast.expression.InfixExpression;
@@ -15,13 +18,16 @@ import com.github.lipinskipawel.mlang.ast.statement.ReturnStatement;
 import com.github.lipinskipawel.mlang.ast.statement.Statement;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyBoolean;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyError;
+import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyFunction;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyInteger;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyNull;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyObject;
 import com.github.lipinskipawel.mlang.evaluator.objects.ReturnValue;
 
+import java.util.ArrayList;
 import java.util.List;
 
+import static com.github.lipinskipawel.mlang.evaluator.Environment.newEnclosedEnvironment;
 import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.ERROR_OBJ;
 import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.INTEGER_OBJ;
 import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.RETURN_VALUE_OBJ;
@@ -83,6 +89,23 @@ public final class Evaluator {
             }
             case IfExpression ifExpression -> evalIfExpression(ifExpression, environment);
             case Identifier identifier -> evalIdentifier(identifier, environment);
+            case FunctionLiteral fn -> {
+                var params = fn.parameters();
+                var body = fn.body();
+                yield new MonkeyFunction(params, body, environment);
+            }
+            case CallExpression callExpression -> {
+                var function = eval(callExpression.function(), environment);
+                if (isError(function)) {
+                    yield function;
+                }
+                var args = evalExpressions(callExpression.arguments(), environment);
+                if (args.size() == 1 && isError(args.get(0))) {
+                    yield args.get(0);
+
+                }
+                yield applyFunction(function, args);
+            }
             default -> null;
         };
     }
@@ -144,6 +167,45 @@ public final class Evaluator {
             return newError("identifier not found: " + identifier.value());
         }
         return value;
+    }
+
+    private List<MonkeyObject> evalExpressions(List<Expression> arguments, Environment environment) {
+        var result = new ArrayList<MonkeyObject>();
+
+        for (var arg : arguments) {
+            var evaluated = eval(arg, environment);
+            if (isError(evaluated)) {
+                return List.of(evaluated);
+            }
+            result.add(evaluated);
+        }
+
+        return result;
+    }
+
+    private MonkeyObject applyFunction(MonkeyObject fn, List<MonkeyObject> arguments) {
+        if (!(fn instanceof MonkeyFunction function)) {
+            return newError("not a function: %s".formatted(fn.type()));
+        }
+
+        final var extendedEnv = extendFunctionEnv(function, arguments);
+        final var evaluated = eval(function.block(), extendedEnv);
+        return unwrapReturnValue(evaluated);
+    }
+
+    private Environment extendFunctionEnv(MonkeyFunction function, List<MonkeyObject> arguments) {
+        final var env = newEnclosedEnvironment(function.environment());
+        for (var i = 0; i < function.parameters().size(); i++) {
+            env.set(function.parameters().get(i).value(), arguments.get(i));
+        }
+        return env;
+    }
+
+    private MonkeyObject unwrapReturnValue(MonkeyObject object) {
+        if (object instanceof ReturnValue value) {
+            return value.value();
+        }
+        return object;
     }
 
     private boolean isTruthy(MonkeyObject object) {

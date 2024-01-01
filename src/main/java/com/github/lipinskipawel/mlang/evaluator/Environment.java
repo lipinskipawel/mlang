@@ -7,13 +7,25 @@ import java.util.Map;
 
 public final class Environment {
     private final Map<String, MonkeyObject> bindings;
+    private Environment outer;
 
     public Environment() {
         this.bindings = new HashMap<>();
+        this.outer = null;
+    }
+
+    public static Environment newEnclosedEnvironment(Environment outer) {
+        final var environment = new Environment();
+        environment.outer = outer;
+        return environment;
     }
 
     MonkeyObject get(String name) {
-        return bindings.get(name);
+        final var inner = bindings.get(name);
+        if (inner == null && outer != null) {
+            return outer.get(name);
+        }
+        return inner;
     }
 
     MonkeyObject set(String name, MonkeyObject monkeyObject) {
