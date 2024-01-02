@@ -10,6 +10,7 @@ import com.github.lipinskipawel.mlang.ast.expression.IfExpression;
 import com.github.lipinskipawel.mlang.ast.expression.InfixExpression;
 import com.github.lipinskipawel.mlang.ast.expression.IntegerLiteral;
 import com.github.lipinskipawel.mlang.ast.expression.PrefixExpression;
+import com.github.lipinskipawel.mlang.ast.expression.StringLiteral;
 import com.github.lipinskipawel.mlang.ast.statement.BlockStatement;
 import com.github.lipinskipawel.mlang.ast.statement.ExpressionStatement;
 import com.github.lipinskipawel.mlang.ast.statement.LetStatement;
@@ -56,6 +57,7 @@ import static com.github.lipinskipawel.mlang.token.TokenType.RBRACE;
 import static com.github.lipinskipawel.mlang.token.TokenType.RPAREN;
 import static com.github.lipinskipawel.mlang.token.TokenType.SEMICOLON;
 import static com.github.lipinskipawel.mlang.token.TokenType.SLASH;
+import static com.github.lipinskipawel.mlang.token.TokenType.STRING;
 import static com.github.lipinskipawel.mlang.token.TokenType.TRUE;
 import static java.lang.Integer.parseInt;
 
@@ -96,6 +98,7 @@ public final class Parser {
         registerPrefix(LPAREN, this::parseGroupedExpression);
         registerPrefix(IF, this::parseIfExpression);
         registerPrefix(FUNCTION, this::parseFunctionLiteral);
+        registerPrefix(STRING, this::parseStringLiteral);
 
         registerInfix(PLUS, this::parseInfixExpression);
         registerInfix(MINUS, this::parseInfixExpression);
@@ -346,6 +349,10 @@ public final class Parser {
         }
 
         return identifiers;
+    }
+
+    private Expression parseStringLiteral() {
+        return new StringLiteral(currentToken, currentToken.literal());
     }
 
     private Expression parseInfixExpression(Expression left) {

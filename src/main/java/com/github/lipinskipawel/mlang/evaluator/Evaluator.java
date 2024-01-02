@@ -11,6 +11,7 @@ import com.github.lipinskipawel.mlang.ast.expression.IfExpression;
 import com.github.lipinskipawel.mlang.ast.expression.InfixExpression;
 import com.github.lipinskipawel.mlang.ast.expression.IntegerLiteral;
 import com.github.lipinskipawel.mlang.ast.expression.PrefixExpression;
+import com.github.lipinskipawel.mlang.ast.expression.StringLiteral;
 import com.github.lipinskipawel.mlang.ast.statement.BlockStatement;
 import com.github.lipinskipawel.mlang.ast.statement.ExpressionStatement;
 import com.github.lipinskipawel.mlang.ast.statement.LetStatement;
@@ -22,6 +23,7 @@ import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyFunction;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyInteger;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyNull;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyObject;
+import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyString;
 import com.github.lipinskipawel.mlang.evaluator.objects.ReturnValue;
 
 import java.util.ArrayList;
@@ -31,6 +33,7 @@ import static com.github.lipinskipawel.mlang.evaluator.Environment.newEnclosedEn
 import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.ERROR_OBJ;
 import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.INTEGER_OBJ;
 import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.RETURN_VALUE_OBJ;
+import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.STRING_OBJ;
 
 public final class Evaluator {
     private static final MonkeyNull NULL = new MonkeyNull();
@@ -68,6 +71,7 @@ public final class Evaluator {
 
             // expressions
             case IntegerLiteral integer -> new MonkeyInteger(integer.value());
+            case StringLiteral string -> new MonkeyString(string.value());
             case BooleanExpression bool -> nativeBoolToMonkeyBoolean(bool.value());
             case PrefixExpression prefix -> {
                 final var right = eval(prefix.right(), environment);
@@ -248,6 +252,9 @@ public final class Evaluator {
         if (left.type() == INTEGER_OBJ && right.type() == INTEGER_OBJ) {
             return evalIntegerInfixExpression(operator, (MonkeyInteger) left, (MonkeyInteger) right);
         }
+        if (left.type() == STRING_OBJ && right.type() == STRING_OBJ) {
+            return evalStringInfixExpression(operator, (MonkeyString) left, (MonkeyString) right);
+        }
         if (left.type() != right.type()) {
             return newError("type mismatch: %s %s %s", left.type(), operator, right.type());
         }
@@ -271,6 +278,13 @@ public final class Evaluator {
             case "!=" -> nativeBoolToMonkeyBoolean(left.value() != right.value());
             default -> newError("unknown operator: %s %s %s");
         };
+    }
+
+    private MonkeyObject evalStringInfixExpression(String operator, MonkeyString left, MonkeyString right) {
+        if (!operator.equals("+")) {
+            return newError("unknown operator: " + left.type() + " - " + right.type());
+        }
+        return new MonkeyString(left.value() + right.value());
     }
 
     private MonkeyBoolean nativeBoolToMonkeyBoolean(boolean bool) {

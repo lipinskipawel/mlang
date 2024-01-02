@@ -22,6 +22,7 @@ import static com.github.lipinskipawel.mlang.token.TokenType.RBRACE;
 import static com.github.lipinskipawel.mlang.token.TokenType.RPAREN;
 import static com.github.lipinskipawel.mlang.token.TokenType.SEMICOLON;
 import static com.github.lipinskipawel.mlang.token.TokenType.SLASH;
+import static com.github.lipinskipawel.mlang.token.TokenType.STRING;
 import static java.lang.Character.isDigit;
 import static java.lang.Character.isLetter;
 import static java.lang.String.valueOf;
@@ -72,6 +73,10 @@ public final class Lexer {
             case '>' -> toToken(GT);
             case '(' -> toToken(LPAREN);
             case ')' -> toToken(RPAREN);
+            case '"' -> {
+                final var literal = readString();
+                yield new Token(STRING, literal);
+            }
             case '{' -> toToken(LBRACE);
             case '}' -> toToken(RBRACE);
             case ',' -> toToken(COMMA);
@@ -120,6 +125,16 @@ public final class Lexer {
             readChar();
         }
         return input.substring(pos, position);
+    }
+
+    String readString() {
+        var pos = position + 1;
+        do {
+            readChar();
+        } while (character != '"' && character != 0);
+        final var result = input.substring(pos, position);
+        readChar();
+        return result;
     }
 
     char peekChar() {

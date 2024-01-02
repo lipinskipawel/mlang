@@ -9,6 +9,7 @@ import com.github.lipinskipawel.mlang.ast.expression.IfExpression;
 import com.github.lipinskipawel.mlang.ast.expression.InfixExpression;
 import com.github.lipinskipawel.mlang.ast.expression.IntegerLiteral;
 import com.github.lipinskipawel.mlang.ast.expression.PrefixExpression;
+import com.github.lipinskipawel.mlang.ast.expression.StringLiteral;
 import com.github.lipinskipawel.mlang.ast.statement.ExpressionStatement;
 import com.github.lipinskipawel.mlang.ast.statement.LetStatement;
 import com.github.lipinskipawel.mlang.ast.statement.ReturnStatement;
@@ -485,6 +486,29 @@ final class ParserTest implements WithAssertions {
                     }
                 }
         );
+    }
+
+    @Test
+    void should_parse_string_literals() {
+        var input = """
+                "Hello world";
+                """;
+
+        var lexer = lexer(input);
+        var parser = new Parser(lexer);
+        var program = parser.parseProgram();
+        checkParseErrors(parser);
+
+        assertThat(program.programStatements()).satisfies(
+                statements -> assertThat(statements.size()).isEqualTo(1),
+                statements -> assertThat(statements.get(0)).isInstanceOf(ExpressionStatement.class)
+        );
+
+        var expressionStatement = (ExpressionStatement) program.programStatements().get(0);
+        assertThat(expressionStatement.expression()).isInstanceOf(StringLiteral.class);
+
+        var stringLiteral = (StringLiteral) expressionStatement.expression();
+        assertThat(stringLiteral.value()).isEqualTo("Hello world");
     }
 
     private void testInfixExpression(Expression expression, Object left, String operator, Object right) {

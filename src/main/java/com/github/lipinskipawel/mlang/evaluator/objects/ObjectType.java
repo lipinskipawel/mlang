@@ -6,7 +6,9 @@ public enum ObjectType {
     NULL_OBJ("NULL"),
     RETURN_VALUE_OBJ("RETURN_VALUE"),
     ERROR_OBJ("ERROR"),
-    FUNCTION_OBJ("FUNCTION");
+    FUNCTION_OBJ("FUNCTION"),
+
+    STRING_OBJ("STRING");
 
     private final String name;
 

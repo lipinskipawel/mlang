@@ -58,6 +58,8 @@ final class LexerTest implements WithAssertions {
 
                 10 == 10;
                 10 != 9;
+                "foobar";
+                "foo bar";
                 """;
         record TokenLiteral(TokenType tokenType, String literal) {
         }
@@ -146,6 +148,12 @@ final class LexerTest implements WithAssertions {
                 new TokenLiteral(INT, "10"),
                 new TokenLiteral(NOT_EQ, "!="),
                 new TokenLiteral(INT, "9"),
+                new TokenLiteral(SEMICOLON, ";"),
+
+                new TokenLiteral(TokenType.STRING, "foobar"),
+                new TokenLiteral(SEMICOLON, ";"),
+
+                new TokenLiteral(TokenType.STRING, "foo bar"),
                 new TokenLiteral(SEMICOLON, ";"),
 
                 new TokenLiteral(EOF, "")

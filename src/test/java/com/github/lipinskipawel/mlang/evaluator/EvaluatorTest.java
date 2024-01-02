@@ -6,6 +6,7 @@ import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyFunction;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyInteger;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyNull;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyObject;
+import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyString;
 import com.github.lipinskipawel.mlang.parser.Parser;
 import org.assertj.core.api.WithAssertions;
 import org.junit.jupiter.api.Test;
@@ -177,7 +178,10 @@ final class EvaluatorTest implements WithAssertions {
                             return 1;
                         }
                         """, "unknown operator: BOOLEAN + BOOLEAN"),
-                arguments("foobar", "identifier not found: foobar")
+                arguments("foobar", "identifier not found: foobar"),
+                arguments("""
+                        "hello" - "world"
+                        """, "unknown operator: STRING - STRING")
         );
     }
 
@@ -265,6 +269,40 @@ final class EvaluatorTest implements WithAssertions {
         var evaluated = testEval(input);
 
         testIntegerObject(evaluated, 4);
+    }
+
+    @Test
+    void should_evaluate_strings() {
+        var input = """
+                "Hello world";
+                """;
+
+        var evaluated = testEval(input);
+
+        assertThat(evaluated).satisfies(
+                object -> assertThat(object).isInstanceOf(MonkeyString.class),
+                object -> {
+                    var string = (MonkeyString) object;
+                    assertThat(string.value()).isEqualTo("Hello world");
+                }
+        );
+    }
+
+    @Test
+    void should_evaluate_string_concatenation() {
+        var input = """
+                "Hello" + " " + "world";
+                """;
+
+        var evaluated = testEval(input);
+
+        assertThat(evaluated).satisfies(
+                object -> assertThat(object).isInstanceOf(MonkeyString.class),
+                object -> {
+                    var string = (MonkeyString) object;
+                    assertThat(string.value()).isEqualTo("Hello world");
+                }
+        );
     }
 
     private MonkeyObject testEval(String input) {
