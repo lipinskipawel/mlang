@@ -8,7 +8,8 @@ public enum ObjectType {
     ERROR_OBJ("ERROR"),
     FUNCTION_OBJ("FUNCTION"),
 
-    STRING_OBJ("STRING");
+    STRING_OBJ("STRING"),
+    BUILTIN_OBJ("BUILTIN_OBJ");
 
     private final String name;
 

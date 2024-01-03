@@ -18,6 +18,7 @@ import com.github.lipinskipawel.mlang.ast.statement.LetStatement;
 import com.github.lipinskipawel.mlang.ast.statement.ReturnStatement;
 import com.github.lipinskipawel.mlang.ast.statement.Statement;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyBoolean;
+import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyBuiltin;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyError;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyFunction;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyInteger;
@@ -30,6 +31,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static com.github.lipinskipawel.mlang.evaluator.Environment.newEnclosedEnvironment;
+import static com.github.lipinskipawel.mlang.evaluator.builtin.Builtin.findBuiltIn;
 import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.ERROR_OBJ;
 import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.INTEGER_OBJ;
 import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.RETURN_VALUE_OBJ;
@@ -167,10 +169,14 @@ public final class Evaluator {
 
     private MonkeyObject evalIdentifier(Identifier identifier, Environment environment) {
         final var value = environment.get(identifier.value());
-        if (value == null) {
-            return newError("identifier not found: " + identifier.value());
+        if (value != null) {
+            return value;
         }
-        return value;
+        final var builtIn = findBuiltIn(identifier.value());
+        if (builtIn.isPresent()) {
+            return builtIn.get();
+        }
+        return newError("identifier not found: " + identifier.value());
     }
 
     private List<MonkeyObject> evalExpressions(List<Expression> arguments, Environment environment) {
@@ -188,13 +194,16 @@ public final class Evaluator {
     }
 
     private MonkeyObject applyFunction(MonkeyObject fn, List<MonkeyObject> arguments) {
-        if (!(fn instanceof MonkeyFunction function)) {
-            return newError("not a function: %s".formatted(fn.type()));
-        }
-
-        final var extendedEnv = extendFunctionEnv(function, arguments);
-        final var evaluated = eval(function.block(), extendedEnv);
-        return unwrapReturnValue(evaluated);
+        return switch (fn.type()) {
+            case FUNCTION_OBJ -> {
+                final var function = (MonkeyFunction) fn;
+                final var extendedEnv = extendFunctionEnv(function, arguments);
+                final var evaluated = eval(function.block(), extendedEnv);
+                yield unwrapReturnValue(evaluated);
+            }
+            case BUILTIN_OBJ -> ((MonkeyBuiltin) fn).builtin(arguments);
+            default -> newError("not a function: %s".formatted(fn.type()));
+        };
     }
 
     private Environment extendFunctionEnv(MonkeyFunction function, List<MonkeyObject> arguments) {
@@ -291,7 +300,7 @@ public final class Evaluator {
         return bool ? TRUE : FALSE;
     }
 
-    private MonkeyError newError(String message, Object... object) {
+    public static MonkeyError newError(String message, Object... object) {
         return new MonkeyError(message.formatted(object));
     }
 }

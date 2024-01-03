@@ -279,13 +279,7 @@ final class EvaluatorTest implements WithAssertions {
 
         var evaluated = testEval(input);
 
-        assertThat(evaluated).satisfies(
-                object -> assertThat(object).isInstanceOf(MonkeyString.class),
-                object -> {
-                    var string = (MonkeyString) object;
-                    assertThat(string.value()).isEqualTo("Hello world");
-                }
-        );
+        testStringObject(evaluated, "Hello world");
     }
 
     @Test
@@ -296,13 +290,35 @@ final class EvaluatorTest implements WithAssertions {
 
         var evaluated = testEval(input);
 
-        assertThat(evaluated).satisfies(
-                object -> assertThat(object).isInstanceOf(MonkeyString.class),
-                object -> {
-                    var string = (MonkeyString) object;
-                    assertThat(string.value()).isEqualTo("Hello world");
-                }
+        testStringObject(evaluated, "Hello world");
+    }
+
+    static Stream<Arguments> builtin() {
+        return Stream.of(
+                arguments("len(\"\")", 0),
+                arguments("len(\"four\")", 4),
+                arguments("len(\"hello world\")", 11),
+                arguments("len(1)", "argument to [len] not supported, got INTEGER"),
+                arguments("len(\"one\", \"two\")", "wrong number of arguments. got=2, want=1")
         );
+    }
+
+    @ParameterizedTest
+    @MethodSource("builtin")
+    void should_evaluate_builtin_functions(String input, Object expected) {
+        var evaluated = testEval(input);
+
+        switch (expected) {
+            case Integer integer -> testIntegerObject(evaluated, integer);
+            case String __ -> assertThat(evaluated).satisfies(
+                    object -> assertThat(object).isInstanceOf(MonkeyError.class),
+                    object -> {
+                        var error = (MonkeyError) object;
+                        assertThat(error.message()).isEqualTo(expected);
+                    }
+            );
+            default -> fail("recheck test case input parameters");
+        }
     }
 
     private MonkeyObject testEval(String input) {
@@ -331,6 +347,16 @@ final class EvaluatorTest implements WithAssertions {
                 object -> {
                     var bool = (MonkeyBoolean) object;
                     assertThat(bool.value()).isEqualTo(expected);
+                }
+        );
+    }
+
+    private void testStringObject(MonkeyObject monkeyObject, String expected) {
+        assertThat(monkeyObject).satisfies(
+                object -> assertThat(object).isInstanceOf(MonkeyString.class),
+                object -> {
+                    var string = (MonkeyString) object;
+                    assertThat(string.value()).isEqualTo(expected);
                 }
         );
     }
