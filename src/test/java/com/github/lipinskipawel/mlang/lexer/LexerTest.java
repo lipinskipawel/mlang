@@ -21,6 +21,7 @@ import static com.github.lipinskipawel.mlang.token.TokenType.IDENT;
 import static com.github.lipinskipawel.mlang.token.TokenType.IF;
 import static com.github.lipinskipawel.mlang.token.TokenType.INT;
 import static com.github.lipinskipawel.mlang.token.TokenType.LBRACE;
+import static com.github.lipinskipawel.mlang.token.TokenType.LBRACKET;
 import static com.github.lipinskipawel.mlang.token.TokenType.LET;
 import static com.github.lipinskipawel.mlang.token.TokenType.LPAREN;
 import static com.github.lipinskipawel.mlang.token.TokenType.LT;
@@ -28,6 +29,7 @@ import static com.github.lipinskipawel.mlang.token.TokenType.MINUS;
 import static com.github.lipinskipawel.mlang.token.TokenType.NOT_EQ;
 import static com.github.lipinskipawel.mlang.token.TokenType.PLUS;
 import static com.github.lipinskipawel.mlang.token.TokenType.RBRACE;
+import static com.github.lipinskipawel.mlang.token.TokenType.RBRACKET;
 import static com.github.lipinskipawel.mlang.token.TokenType.RETURN;
 import static com.github.lipinskipawel.mlang.token.TokenType.RPAREN;
 import static com.github.lipinskipawel.mlang.token.TokenType.SEMICOLON;
@@ -60,6 +62,7 @@ final class LexerTest implements WithAssertions {
                 10 != 9;
                 "foobar";
                 "foo bar";
+                [1, 2];
                 """;
         record TokenLiteral(TokenType tokenType, String literal) {
         }
@@ -154,6 +157,13 @@ final class LexerTest implements WithAssertions {
                 new TokenLiteral(SEMICOLON, ";"),
 
                 new TokenLiteral(TokenType.STRING, "foo bar"),
+                new TokenLiteral(SEMICOLON, ";"),
+
+                new TokenLiteral(LBRACKET, "["),
+                new TokenLiteral(INT, "1"),
+                new TokenLiteral(COMMA, ","),
+                new TokenLiteral(INT, "2"),
+                new TokenLiteral(RBRACKET, "]"),
                 new TokenLiteral(SEMICOLON, ";"),
 
                 new TokenLiteral(EOF, "")

@@ -13,12 +13,14 @@ import static com.github.lipinskipawel.mlang.token.TokenType.GT;
 import static com.github.lipinskipawel.mlang.token.TokenType.ILLEGAL;
 import static com.github.lipinskipawel.mlang.token.TokenType.INT;
 import static com.github.lipinskipawel.mlang.token.TokenType.LBRACE;
+import static com.github.lipinskipawel.mlang.token.TokenType.LBRACKET;
 import static com.github.lipinskipawel.mlang.token.TokenType.LPAREN;
 import static com.github.lipinskipawel.mlang.token.TokenType.LT;
 import static com.github.lipinskipawel.mlang.token.TokenType.MINUS;
 import static com.github.lipinskipawel.mlang.token.TokenType.NOT_EQ;
 import static com.github.lipinskipawel.mlang.token.TokenType.PLUS;
 import static com.github.lipinskipawel.mlang.token.TokenType.RBRACE;
+import static com.github.lipinskipawel.mlang.token.TokenType.RBRACKET;
 import static com.github.lipinskipawel.mlang.token.TokenType.RPAREN;
 import static com.github.lipinskipawel.mlang.token.TokenType.SEMICOLON;
 import static com.github.lipinskipawel.mlang.token.TokenType.SLASH;
@@ -73,6 +75,8 @@ public final class Lexer {
             case '>' -> toToken(GT);
             case '(' -> toToken(LPAREN);
             case ')' -> toToken(RPAREN);
+            case '[' -> toToken(LBRACKET);
+            case ']' -> toToken(RBRACKET);
             case '"' -> {
                 final var literal = readString();
                 yield new Token(STRING, literal);

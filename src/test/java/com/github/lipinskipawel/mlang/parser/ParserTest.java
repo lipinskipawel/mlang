@@ -1,11 +1,13 @@
 package com.github.lipinskipawel.mlang.parser;
 
+import com.github.lipinskipawel.mlang.ast.expression.ArrayLiteral;
 import com.github.lipinskipawel.mlang.ast.expression.BooleanExpression;
 import com.github.lipinskipawel.mlang.ast.expression.CallExpression;
 import com.github.lipinskipawel.mlang.ast.expression.Expression;
 import com.github.lipinskipawel.mlang.ast.expression.FunctionLiteral;
 import com.github.lipinskipawel.mlang.ast.expression.Identifier;
 import com.github.lipinskipawel.mlang.ast.expression.IfExpression;
+import com.github.lipinskipawel.mlang.ast.expression.IndexExpression;
 import com.github.lipinskipawel.mlang.ast.expression.InfixExpression;
 import com.github.lipinskipawel.mlang.ast.expression.IntegerLiteral;
 import com.github.lipinskipawel.mlang.ast.expression.PrefixExpression;
@@ -259,7 +261,9 @@ final class ParserTest implements WithAssertions {
 
                 arguments("a + add(b * c) + d", "((a + add((b * c))) + d)"),
                 arguments("add(a, b, 1, 2 * 3, 4 + 5, add(6, 7 * 8))", "add(a, b, 1, (2 * 3), (4 + 5), add(6, (7 * 8)))"),
-                arguments("add(a + b + c * d / f + g)", "add((((a + b) + ((c * d) / f)) + g))")
+                arguments("add(a + b + c * d / f + g)", "add((((a + b) + ((c * d) / f)) + g))"),
+                arguments("a * [1, 2, 3, 4][b * c] * d", "((a * ([1, 2, 3, 4][(b * c)])) * d)"),
+                arguments("add(a * b[2], b[1], 2 * [1, 2][1])", "add((a * (b[2])), (b[1]), (2 * ([1, 2][1])))")
         );
     }
 
@@ -509,6 +513,53 @@ final class ParserTest implements WithAssertions {
 
         var stringLiteral = (StringLiteral) expressionStatement.expression();
         assertThat(stringLiteral.value()).isEqualTo("Hello world");
+    }
+
+    @Test
+    void should_parse_array_literal() {
+        var input = "[1, 2 * 2, 3 + 3]";
+
+        var lexer = lexer(input);
+        var parser = new Parser(lexer);
+        var program = parser.parseProgram();
+        checkParseErrors(parser);
+
+        assertThat(program.programStatements()).satisfies(
+                statements -> assertThat(statements.size()).isEqualTo(1),
+                statements -> assertThat(statements.get(0)).isInstanceOf(ExpressionStatement.class)
+        );
+
+        var expressionStatement = (ExpressionStatement) program.programStatements().get(0);
+        assertThat(expressionStatement.expression()).isInstanceOf(ArrayLiteral.class);
+
+        var array = (ArrayLiteral) expressionStatement.expression();
+        assertThat(array.elements().size()).isEqualTo(3);
+
+        testIntegerLiteral(array.elements().get(0), 1);
+        testInfixExpression(array.elements().get(1), 2, "*", 2);
+        testInfixExpression(array.elements().get(2), 3, "+", 3);
+    }
+
+    @Test
+    void should_parse_index_expression() {
+        var input = "myArray[1 + 1]";
+
+        var lexer = lexer(input);
+        var parser = new Parser(lexer);
+        var program = parser.parseProgram();
+        checkParseErrors(parser);
+
+        assertThat(program.programStatements()).satisfies(
+                statements -> assertThat(statements.size()).isEqualTo(1),
+                statements -> assertThat(statements.get(0)).isInstanceOf(ExpressionStatement.class)
+        );
+
+        var expressionStatement = (ExpressionStatement) program.programStatements().get(0);
+        assertThat(expressionStatement.expression()).isInstanceOf(IndexExpression.class);
+
+        var index = (IndexExpression) expressionStatement.expression();
+        testIdentifier(index.left(), "myArray");
+        testInfixExpression(index.index(), 1, "+", 1);
     }
 
     private void testInfixExpression(Expression expression, Object left, String operator, Object right) {

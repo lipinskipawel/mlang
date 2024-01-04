@@ -2,12 +2,14 @@ package com.github.lipinskipawel.mlang.evaluator;
 
 import com.github.lipinskipawel.mlang.ast.Node;
 import com.github.lipinskipawel.mlang.ast.Program;
+import com.github.lipinskipawel.mlang.ast.expression.ArrayLiteral;
 import com.github.lipinskipawel.mlang.ast.expression.BooleanExpression;
 import com.github.lipinskipawel.mlang.ast.expression.CallExpression;
 import com.github.lipinskipawel.mlang.ast.expression.Expression;
 import com.github.lipinskipawel.mlang.ast.expression.FunctionLiteral;
 import com.github.lipinskipawel.mlang.ast.expression.Identifier;
 import com.github.lipinskipawel.mlang.ast.expression.IfExpression;
+import com.github.lipinskipawel.mlang.ast.expression.IndexExpression;
 import com.github.lipinskipawel.mlang.ast.expression.InfixExpression;
 import com.github.lipinskipawel.mlang.ast.expression.IntegerLiteral;
 import com.github.lipinskipawel.mlang.ast.expression.PrefixExpression;
@@ -17,6 +19,7 @@ import com.github.lipinskipawel.mlang.ast.statement.ExpressionStatement;
 import com.github.lipinskipawel.mlang.ast.statement.LetStatement;
 import com.github.lipinskipawel.mlang.ast.statement.ReturnStatement;
 import com.github.lipinskipawel.mlang.ast.statement.Statement;
+import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyArray;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyBoolean;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyBuiltin;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyError;
@@ -32,6 +35,7 @@ import java.util.List;
 
 import static com.github.lipinskipawel.mlang.evaluator.Environment.newEnclosedEnvironment;
 import static com.github.lipinskipawel.mlang.evaluator.builtin.Builtin.findBuiltIn;
+import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.ARRAY_OBJ;
 import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.ERROR_OBJ;
 import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.INTEGER_OBJ;
 import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.RETURN_VALUE_OBJ;
@@ -64,7 +68,7 @@ public final class Evaluator {
                 yield new ReturnValue(returned);
             }
             case LetStatement letStatement -> {
-                var let = eval(letStatement.value(), environment);
+                final var let = eval(letStatement.value(), environment);
                 if (isError(let)) {
                     yield let;
                 }
@@ -96,21 +100,39 @@ public final class Evaluator {
             case IfExpression ifExpression -> evalIfExpression(ifExpression, environment);
             case Identifier identifier -> evalIdentifier(identifier, environment);
             case FunctionLiteral fn -> {
-                var params = fn.parameters();
-                var body = fn.body();
+                final var params = fn.parameters();
+                final var body = fn.body();
                 yield new MonkeyFunction(params, body, environment);
             }
             case CallExpression callExpression -> {
-                var function = eval(callExpression.function(), environment);
+                final var function = eval(callExpression.function(), environment);
                 if (isError(function)) {
                     yield function;
                 }
-                var args = evalExpressions(callExpression.arguments(), environment);
+                final var args = evalExpressions(callExpression.arguments(), environment);
                 if (args.size() == 1 && isError(args.get(0))) {
                     yield args.get(0);
 
                 }
                 yield applyFunction(function, args);
+            }
+            case ArrayLiteral arrayLiteral -> {
+                final var elements = evalExpressions(arrayLiteral.elements(), environment);
+                if (elements.size() == 1 && isError(elements.get(0))) {
+                    yield elements.get(0);
+                }
+                yield new MonkeyArray(elements);
+            }
+            case IndexExpression indexExpression -> {
+                final var identifier = eval(indexExpression.left(), environment);
+                if (isError(identifier)) {
+                    yield identifier;
+                }
+                final var index = eval(indexExpression.index(), environment);
+                if (isError(index)) {
+                    yield index;
+                }
+                yield evalIndexExpression(identifier, index);
             }
             default -> null;
         };
@@ -219,6 +241,24 @@ public final class Evaluator {
             return value.value();
         }
         return object;
+    }
+
+    private MonkeyObject evalIndexExpression(MonkeyObject identifier, MonkeyObject index) {
+        if (identifier.type() == ARRAY_OBJ && index.type() == INTEGER_OBJ) {
+            return evalArrayIndexExpression((MonkeyArray) identifier, (MonkeyInteger) index);
+        }
+        return newError("index operator not supported: %s", identifier.type());
+    }
+
+    private MonkeyObject evalArrayIndexExpression(MonkeyArray left, MonkeyInteger index) {
+        final var max = left.elements().size() - 1;
+        final var idx = index.value();
+
+        if (idx < 0 || idx > max) {
+            return NULL;
+        }
+
+        return left.elements().get(idx);
     }
 
     private boolean isTruthy(MonkeyObject object) {

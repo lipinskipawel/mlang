@@ -41,7 +41,9 @@ public enum TokenType {
     ELSE("ELSE"),
     RETURN("RETURN"),
 
-    STRING("STRING");
+    STRING("STRING"),
+    LBRACKET("["),
+    RBRACKET("]");
 
     private final String name;
     private static Map<String, TokenType> keywords = Map.of(

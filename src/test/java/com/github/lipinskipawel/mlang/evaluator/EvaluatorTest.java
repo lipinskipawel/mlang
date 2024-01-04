@@ -1,5 +1,6 @@
 package com.github.lipinskipawel.mlang.evaluator;
 
+import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyArray;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyBoolean;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyError;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyFunction;
@@ -317,6 +318,48 @@ final class EvaluatorTest implements WithAssertions {
                         assertThat(error.message()).isEqualTo(expected);
                     }
             );
+            default -> fail("recheck test case input parameters");
+        }
+    }
+
+    @Test
+    void should_evaluate_array_literal() {
+        var input = "[1, 2 * 2, 3 + 3]";
+
+        var evaluated = testEval(input);
+
+        assertThat(evaluated).isInstanceOf(MonkeyArray.class);
+        var elements = ((MonkeyArray) evaluated).elements();
+
+        assertThat(elements.size()).isEqualTo(3);
+        testIntegerObject(elements.get(0), 1);
+        testIntegerObject(elements.get(1), 4);
+        testIntegerObject(elements.get(2), 6);
+    }
+
+    static Stream<Arguments> arrayIndex() {
+        return Stream.of(
+                arguments("[1, 2, 3][0]", 1),
+                arguments("[1, 2, 3][1]", 2),
+                arguments("[1, 2, 3][2]", 3),
+                arguments("let i = 0; [1][i];", 1),
+                arguments("[1, 2, 3][1 + 1];", 3),
+                arguments("let myArray = [1, 2, 3]; myArray[2];", 3),
+                arguments("let myArray = [1, 2, 3]; myArray[0] + myArray[1] + myArray[2];", 6),
+                arguments("let myArray = [1, 2, 3]; let i = myArray[0]; myArray[i]", 2),
+                arguments("[1, 2, 3][3]", null),
+                arguments("[1, 2, 3][-1]", null)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("arrayIndex")
+    void should_evaluate_array_index_expression(String input, Object expected) {
+        var evaluated = testEval(input);
+
+        switch (expected) {
+            case Integer integer -> testIntegerObject(evaluated, integer);
+            case null -> testNullObject(evaluated);
             default -> fail("recheck test case input parameters");
         }
     }

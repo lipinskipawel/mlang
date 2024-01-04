@@ -1,12 +1,14 @@
 package com.github.lipinskipawel.mlang.parser;
 
 import com.github.lipinskipawel.mlang.ast.Program;
+import com.github.lipinskipawel.mlang.ast.expression.ArrayLiteral;
 import com.github.lipinskipawel.mlang.ast.expression.BooleanExpression;
 import com.github.lipinskipawel.mlang.ast.expression.CallExpression;
 import com.github.lipinskipawel.mlang.ast.expression.Expression;
 import com.github.lipinskipawel.mlang.ast.expression.FunctionLiteral;
 import com.github.lipinskipawel.mlang.ast.expression.Identifier;
 import com.github.lipinskipawel.mlang.ast.expression.IfExpression;
+import com.github.lipinskipawel.mlang.ast.expression.IndexExpression;
 import com.github.lipinskipawel.mlang.ast.expression.InfixExpression;
 import com.github.lipinskipawel.mlang.ast.expression.IntegerLiteral;
 import com.github.lipinskipawel.mlang.ast.expression.PrefixExpression;
@@ -29,6 +31,7 @@ import java.util.function.Supplier;
 
 import static com.github.lipinskipawel.mlang.parser.Precedence.CALL;
 import static com.github.lipinskipawel.mlang.parser.Precedence.EQUALS;
+import static com.github.lipinskipawel.mlang.parser.Precedence.INDEX;
 import static com.github.lipinskipawel.mlang.parser.Precedence.LESSGREATER;
 import static com.github.lipinskipawel.mlang.parser.Precedence.LOWEST;
 import static com.github.lipinskipawel.mlang.parser.Precedence.PREFIX;
@@ -48,12 +51,14 @@ import static com.github.lipinskipawel.mlang.token.TokenType.IDENT;
 import static com.github.lipinskipawel.mlang.token.TokenType.IF;
 import static com.github.lipinskipawel.mlang.token.TokenType.INT;
 import static com.github.lipinskipawel.mlang.token.TokenType.LBRACE;
+import static com.github.lipinskipawel.mlang.token.TokenType.LBRACKET;
 import static com.github.lipinskipawel.mlang.token.TokenType.LPAREN;
 import static com.github.lipinskipawel.mlang.token.TokenType.LT;
 import static com.github.lipinskipawel.mlang.token.TokenType.MINUS;
 import static com.github.lipinskipawel.mlang.token.TokenType.NOT_EQ;
 import static com.github.lipinskipawel.mlang.token.TokenType.PLUS;
 import static com.github.lipinskipawel.mlang.token.TokenType.RBRACE;
+import static com.github.lipinskipawel.mlang.token.TokenType.RBRACKET;
 import static com.github.lipinskipawel.mlang.token.TokenType.RPAREN;
 import static com.github.lipinskipawel.mlang.token.TokenType.SEMICOLON;
 import static com.github.lipinskipawel.mlang.token.TokenType.SLASH;
@@ -78,7 +83,8 @@ public final class Parser {
             MINUS, SUM,
             SLASH, PRODUCT,
             ASTERISK, PRODUCT,
-            LPAREN, CALL
+            LPAREN, CALL,
+            LBRACKET, INDEX
     );
 
     public Parser(Lexer lexer) {
@@ -99,6 +105,7 @@ public final class Parser {
         registerPrefix(IF, this::parseIfExpression);
         registerPrefix(FUNCTION, this::parseFunctionLiteral);
         registerPrefix(STRING, this::parseStringLiteral);
+        registerPrefix(LBRACKET, this::parseArrayLiteral);
 
         registerInfix(PLUS, this::parseInfixExpression);
         registerInfix(MINUS, this::parseInfixExpression);
@@ -109,6 +116,7 @@ public final class Parser {
         registerInfix(LT, this::parseInfixExpression);
         registerInfix(GT, this::parseInfixExpression);
         registerInfix(LPAREN, this::parseCallExpression);
+        registerInfix(LBRACKET, this::parseIndexExpression);
     }
 
     private void nextToken() {
@@ -355,6 +363,38 @@ public final class Parser {
         return new StringLiteral(currentToken, currentToken.literal());
     }
 
+    private Expression parseArrayLiteral() {
+        final var arrayLiteral = new ArrayLiteral(currentToken);
+
+        arrayLiteral.elements(parseExpressionList(RBRACKET));
+
+        return arrayLiteral;
+    }
+
+    private List<Expression> parseExpressionList(TokenType endTokenType) {
+        final var list = new ArrayList<Expression>();
+
+        if (peekTokenIs(endTokenType)) {
+            nextToken();
+            return list;
+        }
+
+        nextToken();
+        list.add(parseExpression(LOWEST));
+
+        while (peekTokenIs(COMMA)) {
+            nextToken();
+            nextToken();
+            list.add(parseExpression(LOWEST));
+        }
+
+        if (!expectPeek(endTokenType)) {
+            return null;
+        }
+
+        return list;
+    }
+
     private Expression parseInfixExpression(Expression left) {
         final var infixExpression = new InfixExpression(currentToken, left, currentToken.literal());
 
@@ -368,34 +408,22 @@ public final class Parser {
     private Expression parseCallExpression(Expression function) {
         final var callExpression = new CallExpression(currentToken, function);
 
-        final var arguments = parseCallArguments();
+        final var arguments = parseExpressionList(RPAREN);
         callExpression.arguments(arguments);
 
         return callExpression;
     }
 
-    private List<Expression> parseCallArguments() {
-        final var arguments = new ArrayList<Expression>();
-
-        if (peekTokenIs(RPAREN)) {
-            nextToken();
-            return arguments;
-        }
+    private Expression parseIndexExpression(Expression identifier) {
+        final var indexExpression = new IndexExpression(currentToken, identifier);
 
         nextToken();
-        arguments.add(parseExpression(LOWEST));
-
-        while (peekTokenIs(COMMA)) {
-            nextToken();
-            nextToken();
-            arguments.add(parseExpression(LOWEST));
-        }
-
-        if (!expectPeek(RPAREN)) {
+        indexExpression.index(parseExpression(LOWEST));
+        if (!expectPeek(RBRACKET)) {
             return null;
         }
 
-        return arguments;
+        return indexExpression;
     }
 
     private void registerPrefix(TokenType type, Supplier<Expression> prefixParseFn) {

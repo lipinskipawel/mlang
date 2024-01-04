@@ -9,7 +9,8 @@ public enum ObjectType {
     FUNCTION_OBJ("FUNCTION"),
 
     STRING_OBJ("STRING"),
-    BUILTIN_OBJ("BUILTIN_OBJ");
+    BUILTIN_OBJ("BUILTIN_OBJ"),
+    ARRAY_OBJ("ARRAY_OBJ");
 
     private final String name;
 
