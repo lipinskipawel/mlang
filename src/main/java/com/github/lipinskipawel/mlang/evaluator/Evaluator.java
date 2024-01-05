@@ -42,7 +42,8 @@ import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.RETURN
 import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.STRING_OBJ;
 
 public final class Evaluator {
-    private static final MonkeyNull NULL = new MonkeyNull();
+    public static final MonkeyNull NULL = new MonkeyNull();
+
     private static final MonkeyBoolean TRUE = new MonkeyBoolean(true);
     private static final MonkeyBoolean FALSE = new MonkeyBoolean(false);
 

@@ -15,6 +15,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.List;
 import java.util.stream.Stream;
 
 import static com.github.lipinskipawel.mlang.evaluator.Evaluator.evaluator;
@@ -300,16 +301,30 @@ final class EvaluatorTest implements WithAssertions {
                 arguments("len(\"four\")", 4),
                 arguments("len(\"hello world\")", 11),
                 arguments("len(1)", "argument to [len] not supported, got INTEGER"),
-                arguments("len(\"one\", \"two\")", "wrong number of arguments. got=2, want=1")
+                arguments("len(\"one\", \"two\")", "wrong number of arguments. got=2, want=1"),
+                arguments("len([1, 2, 3])", 3),
+                arguments("len([])", 0),
+                arguments("first([1, 2, 3])", 1),
+                arguments("first([])", null),
+                arguments("first(1)", "argument to 'first' must be ARRAY, got INTEGER"),
+                arguments("last([1, 2, 3])", 3),
+                arguments("last([])", null),
+                arguments("last(1)", "argument to 'last' must be ARRAY, got INTEGER"),
+                arguments("rest([1, 2, 3])", List.of(2, 3)),
+                arguments("rest([])", null),
+                arguments("push([], 1)", List.of(1)),
+                arguments("push(1, 1)", "argument to 'push' must be ARRAY, got INTEGER")
         );
     }
 
     @ParameterizedTest
     @MethodSource("builtin")
+    @SuppressWarnings("unchecked")
     void should_evaluate_builtin_functions(String input, Object expected) {
         var evaluated = testEval(input);
 
         switch (expected) {
+            case null -> testNullObject(evaluated);
             case Integer integer -> testIntegerObject(evaluated, integer);
             case String __ -> assertThat(evaluated).satisfies(
                     object -> assertThat(object).isInstanceOf(MonkeyError.class),
@@ -318,6 +333,19 @@ final class EvaluatorTest implements WithAssertions {
                         assertThat(error.message()).isEqualTo(expected);
                     }
             );
+            case List list -> {
+                final List<Integer> integers = list;
+                final var evaluatedArray = (MonkeyArray) evaluated;
+
+                assertThat(evaluatedArray).satisfies(
+                        array -> assertThat(array.elements().size()).isEqualTo(integers.size()),
+                        array -> {
+                            for (var i = 0; i < integers.size(); i++) {
+                                testIntegerObject(array.elements().get(i), integers.get(i));
+                            }
+                        }
+                );
+            }
             default -> fail("recheck test case input parameters");
         }
     }
