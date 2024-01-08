@@ -6,6 +6,7 @@ import com.github.lipinskipawel.mlang.token.TokenType;
 import static com.github.lipinskipawel.mlang.token.TokenType.ASSIGN;
 import static com.github.lipinskipawel.mlang.token.TokenType.ASTERISK;
 import static com.github.lipinskipawel.mlang.token.TokenType.BANG;
+import static com.github.lipinskipawel.mlang.token.TokenType.COLON;
 import static com.github.lipinskipawel.mlang.token.TokenType.COMMA;
 import static com.github.lipinskipawel.mlang.token.TokenType.EOF;
 import static com.github.lipinskipawel.mlang.token.TokenType.EQ;
@@ -85,6 +86,7 @@ public final class Lexer {
             case '}' -> toToken(RBRACE);
             case ',' -> toToken(COMMA);
             case ';' -> toToken(SEMICOLON);
+            case ':' -> toToken(COLON);
             case 0 -> new Token(EOF, "");
             default -> {
                 if (isLetter(character) || character == '_') {

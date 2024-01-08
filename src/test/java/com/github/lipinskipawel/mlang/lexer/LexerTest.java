@@ -10,6 +10,7 @@ import static com.github.lipinskipawel.mlang.lexer.Lexer.lexer;
 import static com.github.lipinskipawel.mlang.token.TokenType.ASSIGN;
 import static com.github.lipinskipawel.mlang.token.TokenType.ASTERISK;
 import static com.github.lipinskipawel.mlang.token.TokenType.BANG;
+import static com.github.lipinskipawel.mlang.token.TokenType.COLON;
 import static com.github.lipinskipawel.mlang.token.TokenType.COMMA;
 import static com.github.lipinskipawel.mlang.token.TokenType.ELSE;
 import static com.github.lipinskipawel.mlang.token.TokenType.EOF;
@@ -63,6 +64,7 @@ final class LexerTest implements WithAssertions {
                 "foobar";
                 "foo bar";
                 [1, 2];
+                {"foo": "bar"}
                 """;
         record TokenLiteral(TokenType tokenType, String literal) {
         }
@@ -165,6 +167,12 @@ final class LexerTest implements WithAssertions {
                 new TokenLiteral(INT, "2"),
                 new TokenLiteral(RBRACKET, "]"),
                 new TokenLiteral(SEMICOLON, ";"),
+
+                new TokenLiteral(LBRACE, "{"),
+                new TokenLiteral(TokenType.STRING, "foo"),
+                new TokenLiteral(COLON, ":"),
+                new TokenLiteral(TokenType.STRING, "bar"),
+                new TokenLiteral(RBRACE, "}"),
 
                 new TokenLiteral(EOF, "")
         );

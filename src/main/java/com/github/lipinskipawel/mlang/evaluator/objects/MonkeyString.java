@@ -2,11 +2,15 @@ package com.github.lipinskipawel.mlang.evaluator.objects;
 
 import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.STRING_OBJ;
 
-public final class MonkeyString extends MonkeyObject {
+public final class MonkeyString extends MonkeyObject implements Hashable {
     private final String value;
 
     public MonkeyString(String value) {
         this.value = value;
+    }
+
+    public HashKey hashKey() {
+        return new HashKey(type(), value.hashCode());
     }
 
     @Override

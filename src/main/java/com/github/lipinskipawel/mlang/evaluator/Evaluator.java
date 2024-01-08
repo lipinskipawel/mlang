@@ -7,6 +7,7 @@ import com.github.lipinskipawel.mlang.ast.expression.BooleanExpression;
 import com.github.lipinskipawel.mlang.ast.expression.CallExpression;
 import com.github.lipinskipawel.mlang.ast.expression.Expression;
 import com.github.lipinskipawel.mlang.ast.expression.FunctionLiteral;
+import com.github.lipinskipawel.mlang.ast.expression.HashLiteral;
 import com.github.lipinskipawel.mlang.ast.expression.Identifier;
 import com.github.lipinskipawel.mlang.ast.expression.IfExpression;
 import com.github.lipinskipawel.mlang.ast.expression.IndexExpression;
@@ -19,11 +20,13 @@ import com.github.lipinskipawel.mlang.ast.statement.ExpressionStatement;
 import com.github.lipinskipawel.mlang.ast.statement.LetStatement;
 import com.github.lipinskipawel.mlang.ast.statement.ReturnStatement;
 import com.github.lipinskipawel.mlang.ast.statement.Statement;
+import com.github.lipinskipawel.mlang.evaluator.objects.Hashable;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyArray;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyBoolean;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyBuiltin;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyError;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyFunction;
+import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyHash;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyInteger;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyNull;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyObject;
@@ -37,6 +40,7 @@ import static com.github.lipinskipawel.mlang.evaluator.Environment.newEnclosedEn
 import static com.github.lipinskipawel.mlang.evaluator.builtin.Builtin.findBuiltIn;
 import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.ARRAY_OBJ;
 import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.ERROR_OBJ;
+import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.HASH_OBJ;
 import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.INTEGER_OBJ;
 import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.RETURN_VALUE_OBJ;
 import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.STRING_OBJ;
@@ -135,6 +139,7 @@ public final class Evaluator {
                 }
                 yield evalIndexExpression(identifier, index);
             }
+            case HashLiteral hashLiteral -> evalHashLiterals(hashLiteral, environment);
             default -> null;
         };
     }
@@ -248,6 +253,9 @@ public final class Evaluator {
         if (identifier.type() == ARRAY_OBJ && index.type() == INTEGER_OBJ) {
             return evalArrayIndexExpression((MonkeyArray) identifier, (MonkeyInteger) index);
         }
+        if (identifier.type() == HASH_OBJ) {
+            return evalHashExpression((MonkeyHash) identifier, (MonkeyObject) index);
+        }
         return newError("index operator not supported: %s", identifier.type());
     }
 
@@ -260,6 +268,42 @@ public final class Evaluator {
         }
 
         return left.elements().get(idx);
+    }
+
+    private MonkeyObject evalHashExpression(MonkeyHash left, MonkeyObject key) {
+        if (!(key instanceof Hashable)) {
+            return newError("unusable as hash key: %s", key.type());
+        }
+
+        final var value = left.getHashPair(((Hashable) key).hashKey());
+        if (value == null) {
+            return NULL;
+        }
+
+        return value.value();
+    }
+
+    private MonkeyObject evalHashLiterals(HashLiteral hashLiteral, Environment environment) {
+        final var monkeyHash1 = new MonkeyHash();
+
+        for (var entry : hashLiteral.pairs().entrySet()) {
+            final var key = eval(entry.getKey(), environment);
+            if (isError(key)) {
+                return key;
+            }
+
+            if (!(key instanceof Hashable)) {
+                return newError("unusable as hash key: %s", key.type());
+            }
+
+            final var value = eval(entry.getValue(), environment);
+            if (isError(value)) {
+                return value;
+            }
+            monkeyHash1.put(key, value);
+        }
+
+        return monkeyHash1;
     }
 
     private boolean isTruthy(MonkeyObject object) {

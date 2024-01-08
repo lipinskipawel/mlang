@@ -4,6 +4,7 @@ import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyArray;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyBoolean;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyError;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyFunction;
+import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyHash;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyInteger;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyNull;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyObject;
@@ -16,6 +17,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 import static com.github.lipinskipawel.mlang.evaluator.Evaluator.evaluator;
@@ -183,7 +185,10 @@ final class EvaluatorTest implements WithAssertions {
                 arguments("foobar", "identifier not found: foobar"),
                 arguments("""
                         "hello" - "world"
-                        """, "unknown operator: STRING - STRING")
+                        """, "unknown operator: STRING - STRING"),
+                arguments("""
+                        {"name": "Monkey"}[fn(x) { x }];
+                        """, "unusable as hash key: FUNCTION")
         );
     }
 
@@ -383,6 +388,72 @@ final class EvaluatorTest implements WithAssertions {
     @ParameterizedTest
     @MethodSource("arrayIndex")
     void should_evaluate_array_index_expression(String input, Object expected) {
+        var evaluated = testEval(input);
+
+        switch (expected) {
+            case Integer integer -> testIntegerObject(evaluated, integer);
+            case null -> testNullObject(evaluated);
+            default -> fail("recheck test case input parameters");
+        }
+    }
+
+    @Test
+    void should_evaluate_hash_literal() {
+        var input = """
+                let two = "two";
+                {
+                  "one": 10 - 9,
+                  two: 1 + 1,
+                  "thr" + "ee": 6 / 2,
+                  4: 4,
+                  true: 5,
+                  false: 6
+                }""";
+        var expected = Map.of(
+                new MonkeyString("one").hashKey(), 1,
+                new MonkeyString("two").hashKey(), 2,
+                new MonkeyString("three").hashKey(), 3,
+                new MonkeyInteger(4).hashKey(), 4,
+                new MonkeyBoolean(true).hashKey(), 5,
+                new MonkeyBoolean(false).hashKey(), 6
+        );
+
+        var evaluated = testEval(input);
+
+        assertThat(evaluated).isInstanceOf(MonkeyHash.class);
+        var monkeyHash = ((MonkeyHash) evaluated);
+
+        assertThat(monkeyHash.size()).isEqualTo(expected.size());
+        for (var entry : expected.entrySet()) {
+            assertThat(monkeyHash.getHashPair(entry.getKey()).value()).isNotNull();
+            testIntegerObject(monkeyHash.getHashPair(entry.getKey()).value(), entry.getValue());
+        }
+    }
+
+    static Stream<Arguments> hashIndex() {
+        return Stream.of(
+                arguments("""
+                        {"foo": 5}["foo"]""", 5),
+                arguments("""
+                        {"foo": 5}["bar"]""", null),
+                arguments("""
+                        let key = "foo"; {
+                          "foo":5
+                        }[key]""", 5),
+                arguments("""
+                        {}["foo"]""", null),
+                arguments("""
+                        {5:5}[5]""", 5),
+                arguments("""
+                        {true:5}[true]""", 5),
+                arguments("""
+                        {false:5}[false]""", 5)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("hashIndex")
+    void should_evaluate_hash_index_expression(String input, Object expected) {
         var evaluated = testEval(input);
 
         switch (expected) {

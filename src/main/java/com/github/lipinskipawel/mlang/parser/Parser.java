@@ -6,6 +6,7 @@ import com.github.lipinskipawel.mlang.ast.expression.BooleanExpression;
 import com.github.lipinskipawel.mlang.ast.expression.CallExpression;
 import com.github.lipinskipawel.mlang.ast.expression.Expression;
 import com.github.lipinskipawel.mlang.ast.expression.FunctionLiteral;
+import com.github.lipinskipawel.mlang.ast.expression.HashLiteral;
 import com.github.lipinskipawel.mlang.ast.expression.Identifier;
 import com.github.lipinskipawel.mlang.ast.expression.IfExpression;
 import com.github.lipinskipawel.mlang.ast.expression.IndexExpression;
@@ -40,6 +41,7 @@ import static com.github.lipinskipawel.mlang.parser.Precedence.SUM;
 import static com.github.lipinskipawel.mlang.token.TokenType.ASSIGN;
 import static com.github.lipinskipawel.mlang.token.TokenType.ASTERISK;
 import static com.github.lipinskipawel.mlang.token.TokenType.BANG;
+import static com.github.lipinskipawel.mlang.token.TokenType.COLON;
 import static com.github.lipinskipawel.mlang.token.TokenType.COMMA;
 import static com.github.lipinskipawel.mlang.token.TokenType.ELSE;
 import static com.github.lipinskipawel.mlang.token.TokenType.EOF;
@@ -106,6 +108,7 @@ public final class Parser {
         registerPrefix(FUNCTION, this::parseFunctionLiteral);
         registerPrefix(STRING, this::parseStringLiteral);
         registerPrefix(LBRACKET, this::parseArrayLiteral);
+        registerPrefix(LBRACE, this::parseHashLiteral);
 
         registerInfix(PLUS, this::parseInfixExpression);
         registerInfix(MINUS, this::parseInfixExpression);
@@ -369,6 +372,31 @@ public final class Parser {
         arrayLiteral.elements(parseExpressionList(RBRACKET));
 
         return arrayLiteral;
+    }
+
+    private Expression parseHashLiteral() {
+        final var hashLiteral = new HashLiteral(currentToken);
+
+        while (!peekTokenIs(RBRACE)) {
+            nextToken();
+            final var key = parseExpression(LOWEST);
+
+            if (!expectPeek(COLON)) {
+                return null;
+            }
+
+            nextToken();
+            final var value = parseExpression(LOWEST);
+            hashLiteral.addPair(key, value);
+            if (!peekTokenIs(RBRACE) && !expectPeek(COMMA)) {
+                return null;
+            }
+        }
+
+        if (!expectPeek(RBRACE)) {
+            return null;
+        }
+        return hashLiteral;
     }
 
     private List<Expression> parseExpressionList(TokenType endTokenType) {

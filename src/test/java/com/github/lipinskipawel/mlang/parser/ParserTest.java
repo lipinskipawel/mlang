@@ -5,6 +5,7 @@ import com.github.lipinskipawel.mlang.ast.expression.BooleanExpression;
 import com.github.lipinskipawel.mlang.ast.expression.CallExpression;
 import com.github.lipinskipawel.mlang.ast.expression.Expression;
 import com.github.lipinskipawel.mlang.ast.expression.FunctionLiteral;
+import com.github.lipinskipawel.mlang.ast.expression.HashLiteral;
 import com.github.lipinskipawel.mlang.ast.expression.Identifier;
 import com.github.lipinskipawel.mlang.ast.expression.IfExpression;
 import com.github.lipinskipawel.mlang.ast.expression.IndexExpression;
@@ -25,6 +26,8 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.List;
+import java.util.Map;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import static com.github.lipinskipawel.mlang.ast.Program.givenProgram;
@@ -58,7 +61,7 @@ final class ParserTest implements WithAssertions {
                 prog -> assertThat(prog).isNotNull(),
                 prog -> assertThat(prog.programStatements().size()).isEqualTo(1),
                 prog -> {
-                    final var statement = prog.programStatements().get(0);
+                    var statement = prog.programStatements().get(0);
                     testLetStatement(statement, identifier);
 
                     assertThat(statement).isInstanceOf(LetStatement.class);
@@ -560,6 +563,176 @@ final class ParserTest implements WithAssertions {
         var index = (IndexExpression) expressionStatement.expression();
         testIdentifier(index.left(), "myArray");
         testInfixExpression(index.index(), 1, "+", 1);
+    }
+
+    @Test
+    void should_parse_empty_hash_literal() {
+        var input = "{}";
+
+        var lexer = lexer(input);
+        var parser = new Parser(lexer);
+        var program = parser.parseProgram();
+        checkParseErrors(parser);
+
+        assertThat(program.programStatements()).satisfies(
+                statements -> assertThat(statements.size()).isEqualTo(1),
+                statements -> assertThat(statements.get(0)).isInstanceOf(ExpressionStatement.class)
+        );
+
+        var expressionStatement = (ExpressionStatement) program.programStatements().get(0);
+        assertThat(expressionStatement.expression()).isInstanceOf(HashLiteral.class);
+
+        assertThat(((HashLiteral) expressionStatement.expression()).pairs().size()).isEqualTo(0);
+    }
+
+    @Test
+    void should_parse_hash_literal_with_string_as_keys() {
+        var input = """
+                {"one": 1, "two": 2, "three": 3}
+                """;
+        var expected = Map.of(
+                "one", 1,
+                "two", 2,
+                "three", 3
+        );
+
+        var lexer = lexer(input);
+        var parser = new Parser(lexer);
+        var program = parser.parseProgram();
+        checkParseErrors(parser);
+
+        assertThat(program.programStatements()).satisfies(
+                statements -> assertThat(statements.size()).isEqualTo(1),
+                statements -> assertThat(statements.get(0)).isInstanceOf(ExpressionStatement.class)
+        );
+
+        var expressionStatement = (ExpressionStatement) program.programStatements().get(0);
+        assertThat(expressionStatement.expression()).isInstanceOf(HashLiteral.class);
+
+        var hashLiteral = (HashLiteral) expressionStatement.expression();
+
+        assertThat(hashLiteral.pairs().size()).isEqualTo(expected.size());
+        for (var pair : hashLiteral.pairs().entrySet()) {
+            assertThat(pair).satisfies(
+                    p -> assertThat(p.getKey()).isInstanceOf(StringLiteral.class),
+                    p -> {
+                        var expectedValue = expected.get(p.getKey().string());
+                        testIntegerLiteral(pair.getValue(), expectedValue);
+                    }
+            );
+        }
+    }
+
+    @Test
+    void should_parse_hash_literal_with_boolean_as_keys() {
+        var input = """
+                {true: 1, false: 2}
+                """;
+        var expected = Map.of(
+                true, 1,
+                false, 2
+        );
+
+        var lexer = lexer(input);
+        var parser = new Parser(lexer);
+        var program = parser.parseProgram();
+        checkParseErrors(parser);
+
+        assertThat(program.programStatements()).satisfies(
+                statements -> assertThat(statements.size()).isEqualTo(1),
+                statements -> assertThat(statements.get(0)).isInstanceOf(ExpressionStatement.class)
+        );
+
+        var expressionStatement = (ExpressionStatement) program.programStatements().get(0);
+        assertThat(expressionStatement.expression()).isInstanceOf(HashLiteral.class);
+
+        var hashLiteral = (HashLiteral) expressionStatement.expression();
+
+        assertThat(hashLiteral.pairs().size()).isEqualTo(expected.size());
+        for (var pair : hashLiteral.pairs().entrySet()) {
+            assertThat(pair).satisfies(
+                    p -> assertThat(p.getKey()).isInstanceOf(BooleanExpression.class),
+                    p -> {
+                        var expectedValue = expected.get(Boolean.valueOf(p.getKey().string()));
+                        testIntegerLiteral(pair.getValue(), expectedValue);
+                    }
+            );
+        }
+    }
+
+    @Test
+    void should_parse_hash_literal_with_integers_as_keys() {
+        var input = """
+                {1: 1, 2: 2}
+                """;
+        var expected = Map.of(
+                1, 1,
+                2, 2
+        );
+
+        var lexer = lexer(input);
+        var parser = new Parser(lexer);
+        var program = parser.parseProgram();
+        checkParseErrors(parser);
+
+        assertThat(program.programStatements()).satisfies(
+                statements -> assertThat(statements.size()).isEqualTo(1),
+                statements -> assertThat(statements.get(0)).isInstanceOf(ExpressionStatement.class)
+        );
+
+        var expressionStatement = (ExpressionStatement) program.programStatements().get(0);
+        assertThat(expressionStatement.expression()).isInstanceOf(HashLiteral.class);
+
+        var hashLiteral = (HashLiteral) expressionStatement.expression();
+
+        assertThat(hashLiteral.pairs().size()).isEqualTo(expected.size());
+        for (var pair : hashLiteral.pairs().entrySet()) {
+            assertThat(pair).satisfies(
+                    p -> assertThat(p.getKey()).isInstanceOf(IntegerLiteral.class),
+                    p -> {
+                        var expectedValue = expected.get(Integer.valueOf(p.getKey().string()));
+                        testIntegerLiteral(pair.getValue(), expectedValue);
+                    }
+            );
+        }
+    }
+
+    @Test
+    void should_parse_hash_literal_with_expression_as_keys() {
+        var input = """
+                {"one": 0 + 1, "two": 10 - 8, "three": 15 / 5}
+                """;
+        var expected = Map.<String, Consumer<Expression>>of(
+                "one", e -> testInfixExpression(e, 0, "+", 1),
+                "two", e -> testInfixExpression(e, 10, "-", 8),
+                "three", e -> testInfixExpression(e, 15, "/", 5)
+        );
+
+        var lexer = lexer(input);
+        var parser = new Parser(lexer);
+        var program = parser.parseProgram();
+        checkParseErrors(parser);
+
+        assertThat(program.programStatements()).satisfies(
+                statements -> assertThat(statements.size()).isEqualTo(1),
+                statements -> assertThat(statements.get(0)).isInstanceOf(ExpressionStatement.class)
+        );
+
+        var expressionStatement = (ExpressionStatement) program.programStatements().get(0);
+        assertThat(expressionStatement.expression()).isInstanceOf(HashLiteral.class);
+
+        var hashLiteral = (HashLiteral) expressionStatement.expression();
+
+        assertThat(hashLiteral.pairs().size()).isEqualTo(expected.size());
+        for (var pair : hashLiteral.pairs().entrySet()) {
+            assertThat(pair).satisfies(
+                    p -> assertThat(p.getKey()).isInstanceOf(StringLiteral.class),
+                    p -> {
+                        var testFunction = expected.get(p.getKey().string());
+                        testFunction.accept(pair.getValue());
+                    }
+            );
+        }
     }
 
     private void testInfixExpression(Expression expression, Object left, String operator, Object right) {
