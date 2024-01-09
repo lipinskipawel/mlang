@@ -87,6 +87,12 @@ public final class Builtin {
                 final var copy = new ArrayList<>(array.elements());
                 copy.add(objects.get(1));
                 return new MonkeyArray(copy);
+            }),
+            "puts", abstractMonkeyBuiltin(objects -> {
+                objects.stream()
+                        .map(MonkeyObject::inspect)
+                        .forEach(System.out::println);
+                return NULL;
             })
     );
 
