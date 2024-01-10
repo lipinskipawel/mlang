@@ -1,8 +1,8 @@
 package com.github.lipinskipawel.mlang.evaluator.objects;
 
-import com.github.lipinskipawel.mlang.ast.expression.Identifier;
-import com.github.lipinskipawel.mlang.ast.statement.BlockStatement;
 import com.github.lipinskipawel.mlang.evaluator.Environment;
+import com.github.lipinskipawel.mlang.parser.ast.expression.Identifier;
+import com.github.lipinskipawel.mlang.parser.ast.statement.BlockStatement;
 
 import java.util.List;
 

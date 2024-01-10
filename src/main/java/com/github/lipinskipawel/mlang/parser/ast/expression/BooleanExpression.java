@@ -1,14 +1,14 @@
-package com.github.lipinskipawel.mlang.ast.expression;
+package com.github.lipinskipawel.mlang.parser.ast.expression;
 
-import com.github.lipinskipawel.mlang.token.Token;
+import com.github.lipinskipawel.mlang.lexer.token.Token;
 
-public final class StringLiteral extends Expression {
+public final class BooleanExpression extends Expression {
     private final Token token;
-    private final String value;
+    private final boolean value;
 
-    public StringLiteral(Token token, String value) {
+    public BooleanExpression(Token token, boolean bool) {
         this.token = token;
-        this.value = value;
+        this.value = bool;
     }
 
     @Override
@@ -26,7 +26,7 @@ public final class StringLiteral extends Expression {
 
     }
 
-    public String value() {
+    public boolean value() {
         return value;
     }
 }

@@ -1,6 +1,5 @@
 package com.github.lipinskipawel.mlang.evaluator.builtin;
 
-import com.github.lipinskipawel.mlang.evaluator.objects.BuiltinFunctionDefinition;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyArray;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyBuiltin;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyInteger;

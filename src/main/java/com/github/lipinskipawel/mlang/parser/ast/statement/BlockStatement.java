@@ -1,6 +1,6 @@
-package com.github.lipinskipawel.mlang.ast.statement;
+package com.github.lipinskipawel.mlang.parser.ast.statement;
 
-import com.github.lipinskipawel.mlang.token.Token;
+import com.github.lipinskipawel.mlang.lexer.token.Token;
 
 import java.util.List;
 

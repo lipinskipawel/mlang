@@ -1,6 +1,6 @@
-package com.github.lipinskipawel.mlang.ast;
+package com.github.lipinskipawel.mlang.parser.ast;
 
-import com.github.lipinskipawel.mlang.ast.statement.Statement;
+import com.github.lipinskipawel.mlang.parser.ast.statement.Statement;
 
 import java.util.ArrayList;
 import java.util.List;

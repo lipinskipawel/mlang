@@ -1,7 +1,7 @@
-package com.github.lipinskipawel.mlang.ast.expression;
+package com.github.lipinskipawel.mlang.parser.ast.expression;
 
-import com.github.lipinskipawel.mlang.ast.statement.BlockStatement;
-import com.github.lipinskipawel.mlang.token.Token;
+import com.github.lipinskipawel.mlang.parser.ast.statement.BlockStatement;
+import com.github.lipinskipawel.mlang.lexer.token.Token;
 
 public final class IfExpression extends Expression {
     private Token token; // The 'if' token

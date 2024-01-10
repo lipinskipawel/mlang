@@ -1,7 +1,7 @@
-package com.github.lipinskipawel.mlang.ast.statement;
+package com.github.lipinskipawel.mlang.parser.ast.statement;
 
-import com.github.lipinskipawel.mlang.ast.expression.Expression;
-import com.github.lipinskipawel.mlang.token.Token;
+import com.github.lipinskipawel.mlang.parser.ast.expression.Expression;
+import com.github.lipinskipawel.mlang.lexer.token.Token;
 
 public final class ExpressionStatement extends Statement {
     private Token token; // the first token of the expression

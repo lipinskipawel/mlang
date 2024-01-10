@@ -1,41 +1,41 @@
 package com.github.lipinskipawel.mlang.lexer;
 
-import com.github.lipinskipawel.mlang.token.TokenType;
+import com.github.lipinskipawel.mlang.lexer.token.TokenType;
 import org.assertj.core.api.WithAssertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
 import static com.github.lipinskipawel.mlang.lexer.Lexer.lexer;
-import static com.github.lipinskipawel.mlang.token.TokenType.ASSIGN;
-import static com.github.lipinskipawel.mlang.token.TokenType.ASTERISK;
-import static com.github.lipinskipawel.mlang.token.TokenType.BANG;
-import static com.github.lipinskipawel.mlang.token.TokenType.COLON;
-import static com.github.lipinskipawel.mlang.token.TokenType.COMMA;
-import static com.github.lipinskipawel.mlang.token.TokenType.ELSE;
-import static com.github.lipinskipawel.mlang.token.TokenType.EOF;
-import static com.github.lipinskipawel.mlang.token.TokenType.EQ;
-import static com.github.lipinskipawel.mlang.token.TokenType.FALSE;
-import static com.github.lipinskipawel.mlang.token.TokenType.FUNCTION;
-import static com.github.lipinskipawel.mlang.token.TokenType.GT;
-import static com.github.lipinskipawel.mlang.token.TokenType.IDENT;
-import static com.github.lipinskipawel.mlang.token.TokenType.IF;
-import static com.github.lipinskipawel.mlang.token.TokenType.INT;
-import static com.github.lipinskipawel.mlang.token.TokenType.LBRACE;
-import static com.github.lipinskipawel.mlang.token.TokenType.LBRACKET;
-import static com.github.lipinskipawel.mlang.token.TokenType.LET;
-import static com.github.lipinskipawel.mlang.token.TokenType.LPAREN;
-import static com.github.lipinskipawel.mlang.token.TokenType.LT;
-import static com.github.lipinskipawel.mlang.token.TokenType.MINUS;
-import static com.github.lipinskipawel.mlang.token.TokenType.NOT_EQ;
-import static com.github.lipinskipawel.mlang.token.TokenType.PLUS;
-import static com.github.lipinskipawel.mlang.token.TokenType.RBRACE;
-import static com.github.lipinskipawel.mlang.token.TokenType.RBRACKET;
-import static com.github.lipinskipawel.mlang.token.TokenType.RETURN;
-import static com.github.lipinskipawel.mlang.token.TokenType.RPAREN;
-import static com.github.lipinskipawel.mlang.token.TokenType.SEMICOLON;
-import static com.github.lipinskipawel.mlang.token.TokenType.SLASH;
-import static com.github.lipinskipawel.mlang.token.TokenType.TRUE;
+import static com.github.lipinskipawel.mlang.lexer.token.TokenType.ASSIGN;
+import static com.github.lipinskipawel.mlang.lexer.token.TokenType.ASTERISK;
+import static com.github.lipinskipawel.mlang.lexer.token.TokenType.BANG;
+import static com.github.lipinskipawel.mlang.lexer.token.TokenType.COLON;
+import static com.github.lipinskipawel.mlang.lexer.token.TokenType.COMMA;
+import static com.github.lipinskipawel.mlang.lexer.token.TokenType.ELSE;
+import static com.github.lipinskipawel.mlang.lexer.token.TokenType.EOF;
+import static com.github.lipinskipawel.mlang.lexer.token.TokenType.EQ;
+import static com.github.lipinskipawel.mlang.lexer.token.TokenType.FALSE;
+import static com.github.lipinskipawel.mlang.lexer.token.TokenType.FUNCTION;
+import static com.github.lipinskipawel.mlang.lexer.token.TokenType.GT;
+import static com.github.lipinskipawel.mlang.lexer.token.TokenType.IDENT;
+import static com.github.lipinskipawel.mlang.lexer.token.TokenType.IF;
+import static com.github.lipinskipawel.mlang.lexer.token.TokenType.INT;
+import static com.github.lipinskipawel.mlang.lexer.token.TokenType.LBRACE;
+import static com.github.lipinskipawel.mlang.lexer.token.TokenType.LBRACKET;
+import static com.github.lipinskipawel.mlang.lexer.token.TokenType.LET;
+import static com.github.lipinskipawel.mlang.lexer.token.TokenType.LPAREN;
+import static com.github.lipinskipawel.mlang.lexer.token.TokenType.LT;
+import static com.github.lipinskipawel.mlang.lexer.token.TokenType.MINUS;
+import static com.github.lipinskipawel.mlang.lexer.token.TokenType.NOT_EQ;
+import static com.github.lipinskipawel.mlang.lexer.token.TokenType.PLUS;
+import static com.github.lipinskipawel.mlang.lexer.token.TokenType.RBRACE;
+import static com.github.lipinskipawel.mlang.lexer.token.TokenType.RBRACKET;
+import static com.github.lipinskipawel.mlang.lexer.token.TokenType.RETURN;
+import static com.github.lipinskipawel.mlang.lexer.token.TokenType.RPAREN;
+import static com.github.lipinskipawel.mlang.lexer.token.TokenType.SEMICOLON;
+import static com.github.lipinskipawel.mlang.lexer.token.TokenType.SLASH;
+import static com.github.lipinskipawel.mlang.lexer.token.TokenType.TRUE;
 
 final class LexerTest implements WithAssertions {
 

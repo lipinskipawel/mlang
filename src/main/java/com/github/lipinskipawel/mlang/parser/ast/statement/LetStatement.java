@@ -1,8 +1,8 @@
-package com.github.lipinskipawel.mlang.ast.statement;
+package com.github.lipinskipawel.mlang.parser.ast.statement;
 
-import com.github.lipinskipawel.mlang.ast.expression.Expression;
-import com.github.lipinskipawel.mlang.ast.expression.Identifier;
-import com.github.lipinskipawel.mlang.token.Token;
+import com.github.lipinskipawel.mlang.parser.ast.expression.Expression;
+import com.github.lipinskipawel.mlang.parser.ast.expression.Identifier;
+import com.github.lipinskipawel.mlang.lexer.token.Token;
 
 public final class LetStatement extends Statement {
     private Token token; // the Token.LET token

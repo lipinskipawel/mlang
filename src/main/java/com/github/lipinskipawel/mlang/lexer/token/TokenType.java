@@ -1,4 +1,4 @@
-package com.github.lipinskipawel.mlang.token;
+package com.github.lipinskipawel.mlang.lexer.token;
 
 import java.util.Map;
 
