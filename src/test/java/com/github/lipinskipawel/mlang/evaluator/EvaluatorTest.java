@@ -502,4 +502,66 @@ final class EvaluatorTest implements WithAssertions {
                 }
         );
     }
+
+    @Test
+    void should_construct_reduce_and_sum_functions() {
+        var input = """
+                let reduce = fn(arr, initial, fun) {
+                  let iter = fn(arr, result) {
+                    if (len(arr) == 0) {
+                      result;
+                    } else {
+                      return iter(rest(arr), fun(result, first(arr)));
+                    }
+                  };
+
+                  iter(arr, initial);
+                };
+
+                let sum = fn(arr) {
+                  reduce(arr, 0, fn(initial, el) { initial + el; });
+                };
+
+                let a = [1, 2, 3];
+                let double = fn(x) { x * 2; };
+
+                let summed = sum([1, 2, 3]);
+                """;
+
+        var evaluated = testEval(input);
+
+        testIntegerObject(evaluated, 6);
+    }
+
+    @Test
+    void should_construct_map_functions() {
+        var input = """
+                let map = fn(arr, fun) {
+                  let iter = fn(arr, accumulated) {
+                    if (len(arr) == 0) {
+                      accumulated;
+                    } else {
+                      iter(rest(arr), push(accumulated, fun(first(arr))));
+                    }
+                  };
+
+                  iter(arr, []);
+                };
+
+                let a = [1, 2, 9];
+                let double = fn(x) { x * 2; };
+
+                map(a, double);
+                """;
+
+        var evaluated = testEval(input);
+
+        assertThat(evaluated).isInstanceOf(MonkeyArray.class);
+        var elements = ((MonkeyArray) evaluated).elements();
+
+        assertThat(elements.size()).isEqualTo(3);
+        testIntegerObject(elements.get(0), 2);
+        testIntegerObject(elements.get(1), 4);
+        testIntegerObject(elements.get(2), 18);
+    }
 }
