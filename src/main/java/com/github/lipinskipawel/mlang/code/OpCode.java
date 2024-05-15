@@ -23,4 +23,11 @@ public enum OpCode {
             case OP_CONSTANT -> DEFINITIONS.get(this);
         };
     }
+
+    public static Definition definition(byte op) {
+        return switch (op) {
+            case 1 -> DEFINITIONS.get(OP_CONSTANT);
+            default -> throw new IllegalStateException("Unexpected value: " + op);
+        };
+    }
 }
