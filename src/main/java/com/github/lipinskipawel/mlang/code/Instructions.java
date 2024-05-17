@@ -10,14 +10,14 @@ import static java.nio.ByteOrder.BIG_ENDIAN;
 import static java.util.Arrays.stream;
 
 public final class Instructions {
-    private final byte[] instructions;
+    private byte[] instructions;
 
     private Instructions(byte[] instructions) {
         this.instructions = instructions;
     }
 
     public static Instructions noInstructions() {
-        return new Instructions(new byte[8]);
+        return new Instructions(new byte[0]);
     }
 
     public static Instructions instructions(byte[] instructions) {
@@ -88,6 +88,14 @@ public final class Instructions {
                 .forEach(contacted::put);
 
         return instructions(contacted.array());
+    }
+
+    public void append(Instructions additional) {
+        final var byteBuffer = ByteBuffer.allocate(instructions.length + additional.bytes().length).order(BIG_ENDIAN);
+        byteBuffer.put(instructions);
+        byteBuffer.put(additional.bytes());
+
+        instructions = byteBuffer.array();
     }
 
     public byte[] bytes() {

@@ -51,8 +51,8 @@ class CompilerTest implements WithAssertions {
         var program = parse(compilerTestCase.input());
 
         var compiler = compiler();
-        var compile = compiler.compile(program);
-        var bytecode = compile.bytecode();
+        compiler.compile(program);
+        var bytecode = compiler.bytecode();
 
         testInstructions(compilerTestCase.expectedInstructions(), bytecode.instructions());
         testConstants(compilerTestCase.expectedConstants(), bytecode.constants());
@@ -67,13 +67,13 @@ class CompilerTest implements WithAssertions {
         }
     }
 
-    private void testConstants(List<Object> expected, MonkeyObject[] actual) {
-        assertThat(actual.length).isEqualTo(expected.size());
+    private void testConstants(List<Object> expected, List<MonkeyObject> actual) {
+        assertThat(actual.size()).isEqualTo(expected.size());
 
         for (var i = 0; i < expected.size(); i++) {
             var constant = expected.get(i);
             switch (constant) {
-                case Integer integer -> testIntegerObject(actual[i], integer);
+                case Integer integer -> testIntegerObject(actual.get(i), integer);
                 default -> throw new IllegalStateException("Unexpected value: " + constant);
             }
         }
