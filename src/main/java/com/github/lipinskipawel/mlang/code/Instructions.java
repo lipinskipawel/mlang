@@ -98,6 +98,10 @@ public final class Instructions {
         instructions = byteBuffer.array();
     }
 
+    public byte[] slice(int start, int end) {
+        return slice(instructions, start, end);
+    }
+
     public byte[] bytes() {
         return Arrays.copyOf(instructions, instructions.length);
     }

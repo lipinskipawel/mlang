@@ -51,7 +51,10 @@ class CompilerTest implements WithAssertions {
         var program = parse(compilerTestCase.input());
 
         var compiler = compiler();
-        compiler.compile(program);
+        var error = compiler.compile(program);
+        if (error.isPresent()) {
+            fail("compiler error: [{}]", error);
+        }
         var bytecode = compiler.bytecode();
 
         testInstructions(compilerTestCase.expectedInstructions(), bytecode.instructions());

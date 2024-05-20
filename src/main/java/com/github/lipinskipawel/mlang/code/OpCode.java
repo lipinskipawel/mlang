@@ -24,6 +24,13 @@ public enum OpCode {
         };
     }
 
+    public static OpCode opCode(byte oneByte) {
+        return switch (oneByte) {
+            case 1 -> OP_CONSTANT;
+            default -> throw new IllegalArgumentException("No opcode defined for [%s]".formatted(oneByte));
+        };
+    }
+
     public static Definition definition(byte op) {
         return switch (op) {
             case 1 -> DEFINITIONS.get(OP_CONSTANT);
