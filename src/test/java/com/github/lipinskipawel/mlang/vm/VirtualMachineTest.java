@@ -28,9 +28,9 @@ class VirtualMachineTest implements WithAssertions {
 
     private static Stream<Arguments> tests() {
         return Stream.of(
-//                of(new VmTestCase("1", 1)),
-//                of(new VmTestCase("2", 2)),
-                of(new VmTestCase("1 + 2", 2))
+                of(new VmTestCase("1", 1)),
+                of(new VmTestCase("2", 2)),
+                of(new VmTestCase("1 + 2", 3))
         );
     }
 

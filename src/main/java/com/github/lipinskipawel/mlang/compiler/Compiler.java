@@ -16,6 +16,7 @@ import java.util.Optional;
 
 import static com.github.lipinskipawel.mlang.code.Instructions.make;
 import static com.github.lipinskipawel.mlang.code.Instructions.noInstructions;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_ADD;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_CONSTANT;
 import static java.util.Optional.empty;
 
@@ -57,6 +58,11 @@ public final class Compiler {
                 final var right = compile(infix.right());
                 if (right.isPresent()) {
                     throw new RuntimeException("Compile error");
+                }
+
+                switch (infix.operator()) {
+                    case "+" -> emit(OP_ADD);
+                    default -> throw new IllegalArgumentException("unknown operator [%s]".formatted(infix.operator()));
                 }
             }
             case IntegerLiteral integer -> {

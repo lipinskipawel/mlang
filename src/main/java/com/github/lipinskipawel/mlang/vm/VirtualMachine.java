@@ -2,6 +2,7 @@ package com.github.lipinskipawel.mlang.vm;
 
 import com.github.lipinskipawel.mlang.code.Instructions;
 import com.github.lipinskipawel.mlang.compiler.Bytecode;
+import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyInteger;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyObject;
 
 import java.nio.ByteBuffer;
@@ -44,6 +45,15 @@ public final class VirtualMachine {
                     if (error.isPresent()) {
                         return error;
                     }
+                }
+                case OP_ADD -> {
+                    final var right = stack.pollLast();
+                    final var left = stack.pollLast();
+                    final var leftValue = ((MonkeyInteger) left).value();
+                    final var rightValue = ((MonkeyInteger) right).value();
+
+                    final var result = leftValue + rightValue;
+                    pushToStack(new MonkeyInteger(result));
                 }
             }
         }
