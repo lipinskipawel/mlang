@@ -1,6 +1,5 @@
 package com.github.lipinskipawel.mlang.repl;
 
-import com.github.lipinskipawel.mlang.evaluator.Environment;
 import com.github.lipinskipawel.mlang.parser.Parser;
 
 import java.io.InputStream;
@@ -8,8 +7,9 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.util.Scanner;
 
-import static com.github.lipinskipawel.mlang.evaluator.Evaluator.evaluator;
+import static com.github.lipinskipawel.mlang.compiler.Compiler.compiler;
 import static com.github.lipinskipawel.mlang.lexer.Lexer.lexer;
+import static com.github.lipinskipawel.mlang.vm.VirtualMachine.virtualMachine;
 
 final class Repl {
     private static final String PROMPT = ">> ";
@@ -29,7 +29,6 @@ final class Repl {
 
     static void repl(OutputStream outputStream, InputStream inputStream) {
         final var output = new PrintStream(outputStream);
-        final var env = new Environment();
         try (var scanner = new Scanner(inputStream)) {
             while (true) {
                 output.print(PROMPT);
@@ -44,11 +43,22 @@ final class Repl {
                     continue;
                 }
 
-                final var evaluator = evaluator();
-                final var evaluated = evaluator.eval(program, env);
-                if (evaluated != null) {
-                    output.println(evaluated.inspect());
+                final var compiler = compiler();
+                var error = compiler.compile(program);
+                if (error.isPresent()) {
+                    output.printf("Compilation failed [%s]%n", error.get());
+                    continue;
                 }
+
+                final var vm = virtualMachine(compiler.bytecode());
+                error = vm.run();
+                if (error.isPresent()) {
+                    output.printf("Executing bytecode failed [%s]%n", error.get());
+                    continue;
+                }
+
+                final var monkeyObject = vm.stackTop();
+                output.println(monkeyObject.inspect());
             }
         }
     }

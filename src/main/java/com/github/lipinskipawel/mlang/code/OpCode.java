@@ -3,7 +3,7 @@ package com.github.lipinskipawel.mlang.code;
 import java.util.Map;
 
 public enum OpCode {
-    OP_CONSTANT((byte) 1), // one operand with 2 bytes (uint16) width
+    OP_CONSTANT((byte) 1),
     OP_ADD((byte) 2);
 
     final byte opCode;
@@ -16,7 +16,7 @@ public enum OpCode {
     }
 
     private static final Map<OpCode, Definition> DEFINITIONS = Map.of(
-            OP_CONSTANT, new Definition("OpConstant", new int[]{2}),
+            OP_CONSTANT, new Definition("OpConstant", new int[]{2}),  // one operand with 2 bytes (uint16) width
             OP_ADD, new Definition("OpAdd", new int[0])
     );
 
