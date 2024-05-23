@@ -52,7 +52,7 @@ class VirtualMachineTest implements WithAssertions {
         var vmError = virtualMachine.run();
         vmError.ifPresent(err -> fail("vm error: [{}]", err));
 
-        var stackElement = virtualMachine.stackTop();
+        var stackElement = virtualMachine.lastPoppedStackElement();
 
         testExpectedObject(vmTestCase.expected, stackElement);
     }

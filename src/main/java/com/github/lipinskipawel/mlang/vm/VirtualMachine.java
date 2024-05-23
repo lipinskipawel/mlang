@@ -6,8 +6,6 @@ import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyInteger;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyObject;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayDeque;
-import java.util.Deque;
 import java.util.List;
 import java.util.Optional;
 
@@ -20,16 +18,17 @@ public final class VirtualMachine {
 
     private final List<MonkeyObject> constants;
     private final Instructions instructions;
-    private final Deque<MonkeyObject> stack; // we can define limit on the queue but can't in Stack
+    private final MonkeyObject[] stack; // we can define limit on the queue but can't in Stack
+    private int stackPointer = 0;
 
-    private VirtualMachine(List<MonkeyObject> constants, Instructions instructions, Deque<MonkeyObject> stack) {
+    private VirtualMachine(List<MonkeyObject> constants, Instructions instructions, MonkeyObject[] stack) {
         this.constants = constants;
         this.instructions = instructions;
         this.stack = stack;
     }
 
     public static VirtualMachine virtualMachine(Bytecode bytecode) {
-        return new VirtualMachine(bytecode.constants(), bytecode.instructions(), new ArrayDeque<>(STACK_SIZE));
+        return new VirtualMachine(bytecode.constants(), bytecode.instructions(), new MonkeyObject[STACK_SIZE]);
     }
 
     // fetch-decode-execute cycle
@@ -41,32 +40,45 @@ public final class VirtualMachine {
                 case OP_CONSTANT -> {
                     final var constIndex = readShort(instructions.slice(instructionPointer + 1, instructions.bytes().length));
                     instructionPointer += 2;
-                    final var error = pushToStack(constants.get(constIndex));
+                    final var error = push(constants.get(constIndex));
                     if (error.isPresent()) {
                         return error;
                     }
                 }
                 case OP_ADD -> {
-                    final var right = stack.pollLast();
-                    final var left = stack.pollLast();
+                    final var right = pop();
+                    final var left = pop();
                     final var leftValue = ((MonkeyInteger) left).value();
                     final var rightValue = ((MonkeyInteger) right).value();
 
                     final var result = leftValue + rightValue;
-                    pushToStack(new MonkeyInteger(result));
+                    push(new MonkeyInteger(result));
                 }
+                case OP_POP -> pop();
             }
         }
 
         return empty();
     }
 
-    public MonkeyObject stackTop() {
-        return stack.peekLast();
+    public MonkeyObject lastPoppedStackElement() {
+        return stack[stackPointer];
     }
 
-    private Optional<Object> pushToStack(MonkeyObject object) {
-        return stack.offer(object) ? empty() : Optional.of("stackoverflow");
+    private Optional<Object> push(MonkeyObject object) {
+        if (stackPointer >= STACK_SIZE) {
+            return Optional.of("stack overflow");
+        }
+        stack[stackPointer] = object;
+        stackPointer++;
+        return empty();
+    }
+
+    private MonkeyObject pop() {
+        final var object = stack[stackPointer - 1];
+        stackPointer--;
+        // explicitly not null'ing last element. Just for the book and tests. see usage of lastPoppedStackElement()
+        return object;
     }
 
     private short readShort(byte[] bytes) {

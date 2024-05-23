@@ -18,6 +18,7 @@ import static com.github.lipinskipawel.mlang.code.Instructions.make;
 import static com.github.lipinskipawel.mlang.code.Instructions.noInstructions;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_ADD;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_CONSTANT;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_POP;
 import static java.util.Optional.empty;
 
 public final class Compiler {
@@ -48,6 +49,7 @@ public final class Compiler {
                 if (result.isPresent()) {
                     throw new RuntimeException("Compile error");
                 }
+                emit(OP_POP);
             }
             case InfixExpression infix -> {
                 final var left = compile(infix.left());

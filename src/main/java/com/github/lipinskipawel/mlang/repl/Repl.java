@@ -57,7 +57,7 @@ final class Repl {
                     continue;
                 }
 
-                final var monkeyObject = vm.stackTop();
+                final var monkeyObject = vm.lastPoppedStackElement();
                 output.println(monkeyObject.inspect());
             }
         }
