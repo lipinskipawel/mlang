@@ -18,7 +18,10 @@ import static com.github.lipinskipawel.mlang.code.Instructions.make;
 import static com.github.lipinskipawel.mlang.code.Instructions.noInstructions;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_ADD;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_CONSTANT;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_DIV;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_MUL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_POP;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_SUB;
 import static java.util.Optional.empty;
 
 public final class Compiler {
@@ -64,6 +67,9 @@ public final class Compiler {
 
                 switch (infix.operator()) {
                     case "+" -> emit(OP_ADD);
+                    case "-" -> emit(OP_SUB);
+                    case "*" -> emit(OP_MUL);
+                    case "/" -> emit(OP_DIV);
                     default -> throw new IllegalArgumentException("unknown operator [%s]".formatted(infix.operator()));
                 }
             }

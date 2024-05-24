@@ -30,7 +30,16 @@ class VirtualMachineTest implements WithAssertions {
         return Stream.of(
                 of(new VmTestCase("1", 1)),
                 of(new VmTestCase("2", 2)),
-                of(new VmTestCase("1 + 2", 3))
+                of(new VmTestCase("1 + 2", 3)),
+                of(new VmTestCase("1 - 2", -1)),
+                of(new VmTestCase("1 * 2", 2)),
+                of(new VmTestCase("4 / 2", 2)),
+                of(new VmTestCase("50 / 2 * 2 + 10 - 5", 55)),
+                of(new VmTestCase("5 + 5 + 5 + 5 - 10", 10)),
+                of(new VmTestCase("2 * 2 * 2 * 2 * 2", 32)),
+                of(new VmTestCase("5 * 2 + 10", 20)),
+                of(new VmTestCase("5 + 2 * 10", 25)),
+                of(new VmTestCase("5 * (2 + 10)", 60))
         );
     }
 

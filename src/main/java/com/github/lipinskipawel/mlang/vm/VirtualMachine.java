@@ -1,6 +1,7 @@
 package com.github.lipinskipawel.mlang.vm;
 
 import com.github.lipinskipawel.mlang.code.Instructions;
+import com.github.lipinskipawel.mlang.code.OpCode;
 import com.github.lipinskipawel.mlang.compiler.Bytecode;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyInteger;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyObject;
@@ -10,8 +11,10 @@ import java.util.List;
 import java.util.Optional;
 
 import static com.github.lipinskipawel.mlang.code.OpCode.opCode;
+import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.INTEGER_OBJ;
 import static java.nio.ByteOrder.BIG_ENDIAN;
 import static java.util.Optional.empty;
+import static java.util.Optional.of;
 
 public final class VirtualMachine {
     private static final int STACK_SIZE = 2048;
@@ -45,20 +48,48 @@ public final class VirtualMachine {
                         return error;
                     }
                 }
-                case OP_ADD -> {
-                    final var right = pop();
-                    final var left = pop();
-                    final var leftValue = ((MonkeyInteger) left).value();
-                    final var rightValue = ((MonkeyInteger) right).value();
-
-                    final var result = leftValue + rightValue;
-                    push(new MonkeyInteger(result));
+                case OP_ADD, OP_SUB, OP_MUL, OP_DIV -> {
+                    final var error = executeBinaryOperation(op);
+                    if (error.isPresent()) {
+                        return error;
+                    }
                 }
                 case OP_POP -> pop();
             }
         }
 
         return empty();
+    }
+
+    private Optional<Object> executeBinaryOperation(OpCode op) {
+        final var right = pop();
+        final var left = pop();
+
+        final var leftType = left.type();
+        final var rightType = right.type();
+
+        if (leftType == INTEGER_OBJ && rightType == INTEGER_OBJ) {
+            return executeBinaryInteger(op, left, right);
+        }
+
+        return of("unsupported types for binary operation: %s %s".formatted(leftType, rightType));
+    }
+
+    private Optional<Object> executeBinaryInteger(OpCode op, MonkeyObject left, MonkeyObject right) {
+        final var leftValue = ((MonkeyInteger) left).value();
+        final var rightValue = ((MonkeyInteger) right).value();
+
+        final var result = switch (op) {
+            case OP_ADD -> leftValue + rightValue;
+            case OP_SUB -> leftValue - rightValue;
+            case OP_MUL -> leftValue * rightValue;
+            case OP_DIV -> leftValue / rightValue;
+            default -> of("unknown integer operation [%s]".formatted(op));
+        };
+        if (result instanceof Optional<?> error) {
+            return of(error.get());
+        }
+        return push(new MonkeyInteger((int) result));
     }
 
     public MonkeyObject lastPoppedStackElement() {

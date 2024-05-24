@@ -19,7 +19,10 @@ import static com.github.lipinskipawel.mlang.code.Instructions.make;
 import static com.github.lipinskipawel.mlang.code.Instructions.merge;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_ADD;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_CONSTANT;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_DIV;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_MUL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_POP;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_SUB;
 import static com.github.lipinskipawel.mlang.compiler.Compiler.compiler;
 import static com.github.lipinskipawel.mlang.lexer.Lexer.lexer;
 import static org.junit.jupiter.params.provider.Arguments.of;
@@ -46,6 +49,24 @@ class CompilerTest implements WithAssertions {
                         instructions(make(OP_CONSTANT, new int[]{0})),
                         instructions(make(OP_POP, new int[0])),
                         instructions(make(OP_CONSTANT, new int[]{1})),
+                        instructions(make(OP_POP, new int[0]))
+                ))),
+                of(new CompilerTestCase("1 - 2", List.of(1, 2), List.of(
+                        instructions(make(OP_CONSTANT, new int[]{0})),
+                        instructions(make(OP_CONSTANT, new int[]{1})),
+                        instructions(make(OP_SUB, new int[0])),
+                        instructions(make(OP_POP, new int[0]))
+                ))),
+                of(new CompilerTestCase("1 * 2", List.of(1, 2), List.of(
+                        instructions(make(OP_CONSTANT, new int[]{0})),
+                        instructions(make(OP_CONSTANT, new int[]{1})),
+                        instructions(make(OP_MUL, new int[0])),
+                        instructions(make(OP_POP, new int[0]))
+                ))),
+                of(new CompilerTestCase("2 / 1", List.of(2, 1), List.of(
+                        instructions(make(OP_CONSTANT, new int[]{0})),
+                        instructions(make(OP_CONSTANT, new int[]{1})),
+                        instructions(make(OP_DIV, new int[0])),
                         instructions(make(OP_POP, new int[0]))
                 )))
         );
