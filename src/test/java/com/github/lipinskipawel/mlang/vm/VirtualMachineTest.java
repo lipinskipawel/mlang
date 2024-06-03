@@ -1,5 +1,6 @@
 package com.github.lipinskipawel.mlang.vm;
 
+import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyBoolean;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyInteger;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyObject;
 import com.github.lipinskipawel.mlang.parser.Parser;
@@ -50,6 +51,20 @@ class VirtualMachineTest implements WithAssertions {
         runVirtualMachineTest(vmTestCase);
     }
 
+    private static Stream<Arguments> booleans() {
+        return Stream.of(
+                of(new VmTestCase("true", true)),
+                of(new VmTestCase("false", false))
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("booleans")
+    @DisplayName("boolean expression")
+    void boolean_expression(VmTestCase vmTestCase) {
+        runVirtualMachineTest(vmTestCase);
+    }
+
     private void runVirtualMachineTest(VmTestCase vmTestCase) {
         var program = parse(vmTestCase.input());
 
@@ -69,6 +84,7 @@ class VirtualMachineTest implements WithAssertions {
     private void testExpectedObject(Object expected, MonkeyObject actual) {
         switch (expected) {
             case Integer integer -> testIntegerObject(actual, integer);
+            case Boolean bool -> testBooleanObject(actual, bool);
             default -> throw new IllegalStateException("Unexpected value: " + expected);
         }
     }
@@ -79,6 +95,16 @@ class VirtualMachineTest implements WithAssertions {
                 obj -> {
                     var integer = (MonkeyInteger) obj;
                     assertThat(integer.value()).isEqualTo(expected);
+                }
+        );
+    }
+
+    private void testBooleanObject(MonkeyObject actual, boolean expected) {
+        assertThat(actual).satisfies(
+                obj -> assertThat(obj).isInstanceOf(MonkeyBoolean.class),
+                obj -> {
+                    var bool = (MonkeyBoolean) obj;
+                    assertThat(bool.value()).isEqualTo(expected);
                 }
         );
     }

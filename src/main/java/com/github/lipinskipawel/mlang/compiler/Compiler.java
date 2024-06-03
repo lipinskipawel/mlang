@@ -6,6 +6,7 @@ import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyInteger;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyObject;
 import com.github.lipinskipawel.mlang.parser.ast.Node;
 import com.github.lipinskipawel.mlang.parser.ast.Program;
+import com.github.lipinskipawel.mlang.parser.ast.expression.BooleanExpression;
 import com.github.lipinskipawel.mlang.parser.ast.expression.InfixExpression;
 import com.github.lipinskipawel.mlang.parser.ast.expression.IntegerLiteral;
 import com.github.lipinskipawel.mlang.parser.ast.statement.ExpressionStatement;
@@ -19,9 +20,11 @@ import static com.github.lipinskipawel.mlang.code.Instructions.noInstructions;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_ADD;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_CONSTANT;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_DIV;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_FALSE;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_MUL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_POP;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_SUB;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_TRUE;
 import static java.util.Optional.empty;
 
 public final class Compiler {
@@ -76,6 +79,13 @@ public final class Compiler {
             case IntegerLiteral integer -> {
                 final var monkeyInteger = new MonkeyInteger(integer.value());
                 emit(OP_CONSTANT, addConstant(monkeyInteger));
+            }
+            case BooleanExpression booleanExpression -> {
+                if (booleanExpression.value()) {
+                    emit(OP_TRUE);
+                } else {
+                    emit(OP_FALSE);
+                }
             }
             default -> throw new IllegalStateException("Unexpected value: " + ast);
         }

@@ -3,6 +3,7 @@ package com.github.lipinskipawel.mlang.vm;
 import com.github.lipinskipawel.mlang.code.Instructions;
 import com.github.lipinskipawel.mlang.code.OpCode;
 import com.github.lipinskipawel.mlang.compiler.Bytecode;
+import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyBoolean;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyInteger;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyObject;
 
@@ -18,6 +19,8 @@ import static java.util.Optional.of;
 
 public final class VirtualMachine {
     private static final int STACK_SIZE = 2048;
+    private static final MonkeyBoolean TRUE = new MonkeyBoolean(true);
+    private static final MonkeyBoolean FALSE = new MonkeyBoolean(false);
 
     private final List<MonkeyObject> constants;
     private final Instructions instructions;
@@ -55,6 +58,18 @@ public final class VirtualMachine {
                     }
                 }
                 case OP_POP -> pop();
+                case OP_TRUE -> {
+                    final var error = push(TRUE);
+                    if (error.isPresent()) {
+                        return error;
+                    }
+                }
+                case OP_FALSE -> {
+                    final var error = push(FALSE);
+                    if (error.isPresent()) {
+                        return error;
+                    }
+                }
             }
         }
 

@@ -20,9 +20,11 @@ import static com.github.lipinskipawel.mlang.code.Instructions.merge;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_ADD;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_CONSTANT;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_DIV;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_FALSE;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_MUL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_POP;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_SUB;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_TRUE;
 import static com.github.lipinskipawel.mlang.compiler.Compiler.compiler;
 import static com.github.lipinskipawel.mlang.lexer.Lexer.lexer;
 import static org.junit.jupiter.params.provider.Arguments.of;
@@ -76,6 +78,26 @@ class CompilerTest implements WithAssertions {
     @MethodSource("tests")
     @DisplayName("integer arithmetic")
     void integer_arithmetic(CompilerTestCase compilerTestCase) {
+        runCompiler(compilerTestCase);
+    }
+
+    private static Stream<Arguments> booleans() {
+        return Stream.of(
+                of(new CompilerTestCase("true", List.of(), List.of(
+                        instructions(make(OP_TRUE, new int[]{})),
+                        instructions(make(OP_POP, new int[]{}))
+                ))),
+                of(new CompilerTestCase("false", List.of(), List.of(
+                        instructions(make(OP_FALSE, new int[]{})),
+                        instructions(make(OP_POP, new int[]{}))
+                )))
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("booleans")
+    @DisplayName("boolean expression")
+    void boolean_expression(CompilerTestCase compilerTestCase) {
         runCompiler(compilerTestCase);
     }
 
