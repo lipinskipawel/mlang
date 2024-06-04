@@ -54,7 +54,24 @@ class VirtualMachineTest implements WithAssertions {
     private static Stream<Arguments> booleans() {
         return Stream.of(
                 of(new VmTestCase("true", true)),
-                of(new VmTestCase("false", false))
+                of(new VmTestCase("false", false)),
+                of(new VmTestCase("1 < 2", true)),
+                of(new VmTestCase("1 > 2", false)),
+                of(new VmTestCase("1 < 1", false)),
+                of(new VmTestCase("1 > 1", false)),
+                of(new VmTestCase("1 == 1", true)),
+                of(new VmTestCase("1 != 1", false)),
+                of(new VmTestCase("1 == 2", false)),
+                of(new VmTestCase("1 != 2", true)),
+                of(new VmTestCase("true == true", true)),
+                of(new VmTestCase("false == false", true)),
+                of(new VmTestCase("true == false", false)),
+                of(new VmTestCase("true != false", true)),
+                of(new VmTestCase("false != true", true)),
+                of(new VmTestCase("(1 < 2) == true", true)),
+                of(new VmTestCase("(1 < 2) == false", false)),
+                of(new VmTestCase("(1 > 2) == true", false)),
+                of(new VmTestCase("(1 > 2) == false", true))
         );
     }
 

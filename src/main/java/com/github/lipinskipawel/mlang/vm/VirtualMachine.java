@@ -70,6 +70,12 @@ public final class VirtualMachine {
                         return error;
                     }
                 }
+                case OP_EQUAL, OP_NOT_EQUAL, OP_GREATER_THAN -> {
+                    final var error = executeComparison(op);
+                    if (error.isPresent()) {
+                        return error;
+                    }
+                }
             }
         }
 
@@ -105,6 +111,47 @@ public final class VirtualMachine {
             return of(error.get());
         }
         return push(new MonkeyInteger((int) result));
+    }
+
+    private Optional<Object> executeComparison(OpCode op) {
+        final var right = pop();
+        final var left = pop();
+
+        if (left.type() == INTEGER_OBJ && right.type() == INTEGER_OBJ) {
+            return executeIntegerComparison(op, left, right);
+        }
+
+        final var result = switch (op) {
+            case OP_EQUAL -> push(nativeBoolToBooleanObject(right == left));
+            case OP_NOT_EQUAL -> push(nativeBoolToBooleanObject(right != left));
+            default -> of("unknown integer operation [%s] (%s %s)".formatted(op, left.type(), right.type()));
+        };
+        if (result instanceof Optional<?> error && error.isPresent()) {
+            return of(error.get());
+        }
+        return empty();
+    }
+
+    private Optional<Object> executeIntegerComparison(OpCode op, MonkeyObject left, MonkeyObject right) {
+        final var leftValue = ((MonkeyInteger) left).value();
+        final var rightValue = ((MonkeyInteger) right).value();
+
+        final var result = switch (op) {
+            case OP_EQUAL -> push(nativeBoolToBooleanObject(rightValue == leftValue));
+            case OP_NOT_EQUAL -> push(nativeBoolToBooleanObject(rightValue != leftValue));
+            case OP_GREATER_THAN -> push(nativeBoolToBooleanObject(leftValue > rightValue));
+            default -> of("unknown operator [%s]".formatted(op));
+        };
+
+        if (result instanceof Optional<?> error && error.isPresent()) {
+            return of(error.get());
+        }
+
+        return empty();
+    }
+
+    private MonkeyBoolean nativeBoolToBooleanObject(boolean input) {
+        return input ? TRUE : FALSE;
     }
 
     public MonkeyObject lastPoppedStackElement() {

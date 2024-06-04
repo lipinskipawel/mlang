@@ -20,8 +20,11 @@ import static com.github.lipinskipawel.mlang.code.Instructions.merge;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_ADD;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_CONSTANT;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_DIV;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_EQUAL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_FALSE;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_GREATER_THAN;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_MUL;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_NOT_EQUAL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_POP;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_SUB;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_TRUE;
@@ -89,6 +92,42 @@ class CompilerTest implements WithAssertions {
                 ))),
                 of(new CompilerTestCase("false", List.of(), List.of(
                         instructions(make(OP_FALSE, new int[]{})),
+                        instructions(make(OP_POP, new int[]{}))
+                ))),
+                of(new CompilerTestCase("1 > 2", List.of(1, 2), List.of(
+                        instructions(make(OP_CONSTANT, new int[]{0})),
+                        instructions(make(OP_CONSTANT, new int[]{1})),
+                        instructions(make(OP_GREATER_THAN, new int[]{})),
+                        instructions(make(OP_POP, new int[]{}))
+                ))),
+                of(new CompilerTestCase("1 < 2", List.of(2, 1), List.of(
+                        instructions(make(OP_CONSTANT, new int[]{0})),
+                        instructions(make(OP_CONSTANT, new int[]{1})),
+                        instructions(make(OP_GREATER_THAN, new int[]{})),
+                        instructions(make(OP_POP, new int[]{}))
+                ))),
+                of(new CompilerTestCase("1 == 2", List.of(1, 2), List.of(
+                        instructions(make(OP_CONSTANT, new int[]{0})),
+                        instructions(make(OP_CONSTANT, new int[]{1})),
+                        instructions(make(OP_EQUAL, new int[]{})),
+                        instructions(make(OP_POP, new int[]{}))
+                ))),
+                of(new CompilerTestCase("1 != 2", List.of(1, 2), List.of(
+                        instructions(make(OP_CONSTANT, new int[]{0})),
+                        instructions(make(OP_CONSTANT, new int[]{1})),
+                        instructions(make(OP_NOT_EQUAL, new int[]{})),
+                        instructions(make(OP_POP, new int[]{}))
+                ))),
+                of(new CompilerTestCase("true == false", List.of(), List.of(
+                        instructions(make(OP_TRUE, new int[]{})),
+                        instructions(make(OP_FALSE, new int[]{})),
+                        instructions(make(OP_EQUAL, new int[]{})),
+                        instructions(make(OP_POP, new int[]{}))
+                ))),
+                of(new CompilerTestCase("true != false", List.of(), List.of(
+                        instructions(make(OP_TRUE, new int[]{})),
+                        instructions(make(OP_FALSE, new int[]{})),
+                        instructions(make(OP_NOT_EQUAL, new int[]{})),
                         instructions(make(OP_POP, new int[]{}))
                 )))
         );

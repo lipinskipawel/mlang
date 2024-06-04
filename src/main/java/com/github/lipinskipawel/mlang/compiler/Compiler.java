@@ -15,13 +15,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import static com.github.lipinskipawel.mlang.code.Instructions.instructions;
 import static com.github.lipinskipawel.mlang.code.Instructions.make;
 import static com.github.lipinskipawel.mlang.code.Instructions.noInstructions;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_ADD;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_CONSTANT;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_DIV;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_EQUAL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_FALSE;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_GREATER_THAN;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_MUL;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_NOT_EQUAL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_POP;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_SUB;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_TRUE;
@@ -46,26 +50,39 @@ public final class Compiler {
                 for (var statement : program.programStatements()) {
                     final var result = compile(statement);
                     if (result.isPresent()) {
-                        throw new RuntimeException("Compile error");
+                        return result;
                     }
                 }
             }
             case ExpressionStatement statement -> {
                 final var result = compile(statement.expression());
                 if (result.isPresent()) {
-                    throw new RuntimeException("Compile error");
+                    return result;
                 }
                 emit(OP_POP);
             }
             case InfixExpression infix -> {
+                if (infix.operator().equals("<")) {
+                    final var right = compile(infix.right());
+                    if (right.isPresent()) {
+                        return right;
+                    }
+
+                    final var left = compile(infix.left());
+                    if (left.isPresent()) {
+                        return left;
+                    }
+                    emit(OP_GREATER_THAN);
+                    return empty();
+                }
                 final var left = compile(infix.left());
                 if (left.isPresent()) {
-                    throw new RuntimeException("Compile error");
+                    return left;
                 }
 
                 final var right = compile(infix.right());
                 if (right.isPresent()) {
-                    throw new RuntimeException("Compile error");
+                    return right;
                 }
 
                 switch (infix.operator()) {
@@ -73,6 +90,9 @@ public final class Compiler {
                     case "-" -> emit(OP_SUB);
                     case "*" -> emit(OP_MUL);
                     case "/" -> emit(OP_DIV);
+                    case ">" -> emit(OP_GREATER_THAN);
+                    case "==" -> emit(OP_EQUAL);
+                    case "!=" -> emit(OP_NOT_EQUAL);
                     default -> throw new IllegalArgumentException("unknown operator [%s]".formatted(infix.operator()));
                 }
             }
@@ -101,7 +121,7 @@ public final class Compiler {
 
     private int addInstructions(byte[] instruction) {
         final var newPositionInstruction = instructions.bytes().length;
-        instructions.append(Instructions.instructions(instruction));
+        instructions.append(instructions(instruction));
         return newPositionInstruction;
     }
 
