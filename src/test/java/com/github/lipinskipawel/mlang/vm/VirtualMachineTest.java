@@ -27,7 +27,7 @@ class VirtualMachineTest implements WithAssertions {
     ) {
     }
 
-    private static Stream<Arguments> tests() {
+    private static Stream<Arguments> arithmetic() {
         return Stream.of(
                 of(new VmTestCase("1", 1)),
                 of(new VmTestCase("2", 2)),
@@ -40,12 +40,16 @@ class VirtualMachineTest implements WithAssertions {
                 of(new VmTestCase("2 * 2 * 2 * 2 * 2", 32)),
                 of(new VmTestCase("5 * 2 + 10", 20)),
                 of(new VmTestCase("5 + 2 * 10", 25)),
-                of(new VmTestCase("5 * (2 + 10)", 60))
+                of(new VmTestCase("5 * (2 + 10)", 60)),
+                of(new VmTestCase("-5", -5)),
+                of(new VmTestCase("-10", -10)),
+                of(new VmTestCase("-50 + 100 + -50", 0)),
+                of(new VmTestCase("(5 + 10 * 2 + 15 / 3) * 2 + -10", 50))
         );
     }
 
     @ParameterizedTest
-    @MethodSource("tests")
+    @MethodSource("arithmetic")
     @DisplayName("integer arithmetic")
     void integer_arithmetic(VmTestCase vmTestCase) {
         runVirtualMachineTest(vmTestCase);
@@ -71,7 +75,13 @@ class VirtualMachineTest implements WithAssertions {
                 of(new VmTestCase("(1 < 2) == true", true)),
                 of(new VmTestCase("(1 < 2) == false", false)),
                 of(new VmTestCase("(1 > 2) == true", false)),
-                of(new VmTestCase("(1 > 2) == false", true))
+                of(new VmTestCase("(1 > 2) == false", true)),
+                of(new VmTestCase("!true", false)),
+                of(new VmTestCase("!false", true)),
+                of(new VmTestCase("!5", false)),
+                of(new VmTestCase("!!true", true)),
+                of(new VmTestCase("!!false", false)),
+                of(new VmTestCase("!!5", true))
         );
     }
 

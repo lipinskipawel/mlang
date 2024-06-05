@@ -9,6 +9,7 @@ import com.github.lipinskipawel.mlang.parser.ast.Program;
 import com.github.lipinskipawel.mlang.parser.ast.expression.BooleanExpression;
 import com.github.lipinskipawel.mlang.parser.ast.expression.InfixExpression;
 import com.github.lipinskipawel.mlang.parser.ast.expression.IntegerLiteral;
+import com.github.lipinskipawel.mlang.parser.ast.expression.PrefixExpression;
 import com.github.lipinskipawel.mlang.parser.ast.statement.ExpressionStatement;
 
 import java.util.ArrayList;
@@ -19,11 +20,13 @@ import static com.github.lipinskipawel.mlang.code.Instructions.instructions;
 import static com.github.lipinskipawel.mlang.code.Instructions.make;
 import static com.github.lipinskipawel.mlang.code.Instructions.noInstructions;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_ADD;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_BANG;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_CONSTANT;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_DIV;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_EQUAL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_FALSE;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_GREATER_THAN;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_MINUS;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_MUL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_NOT_EQUAL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_POP;
@@ -60,6 +63,18 @@ public final class Compiler {
                     return result;
                 }
                 emit(OP_POP);
+            }
+            case PrefixExpression prefix -> {
+                final var error = compile(prefix.right());
+                if (error.isPresent()) {
+                    return error;
+                }
+
+                switch (prefix.operator()) {
+                    case "!" -> emit(OP_BANG);
+                    case "-" -> emit(OP_MINUS);
+                    default -> throw new IllegalArgumentException("unknown operator [%s]".formatted(prefix.operator()));
+                }
             }
             case InfixExpression infix -> {
                 if (infix.operator().equals("<")) {

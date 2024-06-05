@@ -76,6 +76,18 @@ public final class VirtualMachine {
                         return error;
                     }
                 }
+                case OP_BANG -> {
+                    final var error = executeBangOperator();
+                    if (error.isPresent()) {
+                        return error;
+                    }
+                }
+                case OP_MINUS -> {
+                    final var error = executeMinusOperator();
+                    if (error.isPresent()) {
+                        return error;
+                    }
+                }
             }
         }
 
@@ -152,6 +164,33 @@ public final class VirtualMachine {
 
     private MonkeyBoolean nativeBoolToBooleanObject(boolean input) {
         return input ? TRUE : FALSE;
+    }
+
+    private Optional<Object> executeBangOperator() {
+        final var operand = pop();
+
+        switch (operand) {
+            case MonkeyBoolean monkeyBoolean -> {
+                if (monkeyBoolean.value()) {
+                    push(FALSE);
+                } else {
+                    push(TRUE);
+                }
+            }
+            default -> push(FALSE);
+        }
+        return empty();
+    }
+
+    private Optional<Object> executeMinusOperator() {
+        final var operand = pop();
+
+        if (operand.type() != INTEGER_OBJ) {
+            return of("unsupported type for negation: %s".formatted(operand.type()));
+        }
+
+        final var value = ((MonkeyInteger) operand).value();
+        return push(new MonkeyInteger(-value));
     }
 
     public MonkeyObject lastPoppedStackElement() {
