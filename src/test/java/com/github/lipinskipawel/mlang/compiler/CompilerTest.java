@@ -24,6 +24,8 @@ import static com.github.lipinskipawel.mlang.code.OpCode.OP_DIV;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_EQUAL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_FALSE;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_GREATER_THAN;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_JUMP;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_JUMP_NOT_TRUTHY;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_MINUS;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_MUL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_NOT_EQUAL;
@@ -152,6 +154,50 @@ class CompilerTest implements WithAssertions {
         runCompiler(compilerTestCase);
     }
 
+    private static Stream<Arguments> conditionals() {
+        return Stream.of(
+                of(new CompilerTestCase("if (true) { 10; }; 3333;", List.of(10, 3333), List.of(
+                        // 0000
+                        instructions(make(OP_TRUE, new int[0])),
+                        // 0001
+                        instructions(make(OP_JUMP_NOT_TRUTHY, new int[]{7})),
+                        // 0004
+                        instructions(make(OP_CONSTANT, new int[]{0})),
+                        // 0007
+                        instructions(make(OP_POP, new int[0])),
+                        // 0008
+                        instructions(make(OP_CONSTANT, new int[]{1})),
+                        // 0011
+                        instructions(make(OP_POP, new int[0]))
+                ))),
+                of(new CompilerTestCase("if (true) { 10; } else { 20; }; 3333;", List.of(10, 20, 3333), List.of(
+                        // 0000
+                        instructions(make(OP_TRUE, new int[0])),
+                        // 0001
+                        instructions(make(OP_JUMP_NOT_TRUTHY, new int[]{10})),
+                        // 0004
+                        instructions(make(OP_CONSTANT, new int[]{0})),
+                        // 0007
+                        instructions(make(OP_JUMP, new int[]{13})),
+                        // 0010
+                        instructions(make(OP_CONSTANT, new int[]{1})),
+                        // 0013
+                        instructions(make(OP_POP, new int[0])),
+                        // 0014
+                        instructions(make(OP_CONSTANT, new int[]{2})),
+                        // 0017
+                        instructions(make(OP_POP, new int[0]))
+                )))
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("conditionals")
+    @DisplayName("conditional expressions")
+    void conditional_expressions(CompilerTestCase compilerTestCase) {
+        runCompiler(compilerTestCase);
+    }
+
     private void runCompiler(CompilerTestCase compilerTestCase) {
         var program = parse(compilerTestCase.input());
 
@@ -169,9 +215,18 @@ class CompilerTest implements WithAssertions {
     private void testInstructions(List<Instructions> expected, Instructions actual) {
         var concated = merge(expected);
 
-        assertThat(actual.bytes().length).isEqualTo(concated.bytes().length);
+        final var actualLength = actual.bytes().length;
+        final var expectedLength = concated.bytes().length;
+        if (actualLength != expectedLength) {
+            fail("wrong instruction length\nwant\n%s\ngot\n%s\n", concated, actual);
+        }
+        assertThat(actualLength).isEqualTo(expectedLength);
         for (var i = 0; i < actual.bytes().length; i++) {
-            assertThat(actual.bytes()[i]).isEqualTo(concated.bytes()[i]);
+            final byte actualByte = actual.bytes()[i];
+            final byte expectedByte = concated.bytes()[i];
+            if (actualByte != expectedByte) {
+                fail("wrong instruction at %d. \nwant\n%s\ngot\n%s\n", i, concated, actual);
+            }
         }
     }
 

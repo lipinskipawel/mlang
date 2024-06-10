@@ -7,9 +7,11 @@ import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyObject;
 import com.github.lipinskipawel.mlang.parser.ast.Node;
 import com.github.lipinskipawel.mlang.parser.ast.Program;
 import com.github.lipinskipawel.mlang.parser.ast.expression.BooleanExpression;
+import com.github.lipinskipawel.mlang.parser.ast.expression.IfExpression;
 import com.github.lipinskipawel.mlang.parser.ast.expression.InfixExpression;
 import com.github.lipinskipawel.mlang.parser.ast.expression.IntegerLiteral;
 import com.github.lipinskipawel.mlang.parser.ast.expression.PrefixExpression;
+import com.github.lipinskipawel.mlang.parser.ast.statement.BlockStatement;
 import com.github.lipinskipawel.mlang.parser.ast.statement.ExpressionStatement;
 
 import java.util.ArrayList;
@@ -26,17 +28,22 @@ import static com.github.lipinskipawel.mlang.code.OpCode.OP_DIV;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_EQUAL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_FALSE;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_GREATER_THAN;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_JUMP;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_JUMP_NOT_TRUTHY;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_MINUS;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_MUL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_NOT_EQUAL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_POP;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_SUB;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_TRUE;
+import static com.github.lipinskipawel.mlang.code.OpCode.opCode;
 import static java.util.Optional.empty;
 
 public final class Compiler {
     private final Instructions instructions;
     private final List<MonkeyObject> constants;
+    private EmittedInstructions lastInstruction;
+    private EmittedInstructions previousInstruction;
 
     private Compiler(Instructions instructions, List<MonkeyObject> constants) {
         this.instructions = instructions;
@@ -122,15 +129,81 @@ public final class Compiler {
                     emit(OP_FALSE);
                 }
             }
+            case IfExpression ifExpression -> {
+                var error = compile(ifExpression.condition());
+                if (error.isPresent()) {
+                    return error;
+                }
+
+                final var jumpNotTruthyPos = emit(OP_JUMP_NOT_TRUTHY, 9999);
+
+                error = compile(ifExpression.consequence());
+                if (error.isPresent()) {
+                    return error;
+                }
+
+                if (lastInstructionIsPop()) {
+                    removeLastPop();
+                }
+
+                if (ifExpression.alternative() == null) {
+                    final var afterConsequencePos = instructions.length();
+                    changeOperand(jumpNotTruthyPos, afterConsequencePos);
+                } else {
+                    final var jumpPos = emit(OP_JUMP, 3333);
+
+                    final var afterConsequencePos = instructions.length();
+                    changeOperand(jumpNotTruthyPos, afterConsequencePos);
+
+                    error = compile(ifExpression.alternative());
+                    if (error.isPresent()) {
+                        return error;
+                    }
+
+                    if (lastInstructionIsPop()) {
+                        removeLastPop();
+                    }
+
+                    final var afterAlternativePos = instructions.length();
+                    changeOperand(jumpPos, afterAlternativePos);
+                }
+            }
+            case BlockStatement blockStatement -> {
+                for (var statement : blockStatement.statements()) {
+                    final var error = compile(statement);
+                    if (error.isPresent()) {
+                        return error;
+                    }
+                }
+            }
             default -> throw new IllegalStateException("Unexpected value: " + ast);
         }
         return empty();
+    }
+
+    private boolean lastInstructionIsPop() {
+        return lastInstruction.opCode() == OP_POP;
+    }
+
+    private void removeLastPop() {
+        instructions.remove(lastInstruction.position());
+        lastInstruction = previousInstruction;
+    }
+
+    private void changeOperand(int opPosition, int... operand) {
+        final var opCode = opCode(instructions.instructionAt(opPosition));
+        final var newInstruction = make(opCode, operand);
+
+        instructions.replaceInstructions(opPosition, newInstruction);
     }
 
     // here we can write to file or to collections
     private int emit(OpCode op, int... operands) {
         final var instruction = make(op, operands);
         final var position = addInstructions(instruction);
+
+        setLastInstruction(op, position);
+
         return position;
     }
 
@@ -138,6 +211,11 @@ public final class Compiler {
         final var newPositionInstruction = instructions.bytes().length;
         instructions.append(instructions(instruction));
         return newPositionInstruction;
+    }
+
+    private void setLastInstruction(OpCode op, int pos) {
+        previousInstruction = lastInstruction;
+        lastInstruction = new EmittedInstructions(op, pos);
     }
 
     private int addConstant(MonkeyObject constant) {

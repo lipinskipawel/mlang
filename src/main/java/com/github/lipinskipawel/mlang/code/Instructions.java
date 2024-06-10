@@ -6,6 +6,7 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
 
+import static java.lang.System.arraycopy;
 import static java.nio.ByteOrder.BIG_ENDIAN;
 import static java.util.Arrays.stream;
 
@@ -96,6 +97,22 @@ public final class Instructions {
         byteBuffer.put(additional.bytes());
 
         instructions = byteBuffer.array();
+    }
+
+    public int length() {
+        return instructions.length;
+    }
+
+    public void remove(int pos) {
+        instructions = slice(instructions, 0, pos);
+    }
+
+    public void replaceInstructions(int pos, byte[] newInstructions) {
+        arraycopy(newInstructions, 0, instructions, pos, newInstructions.length);
+    }
+
+    public byte instructionAt(int position) {
+        return instructions[position];
     }
 
     public byte[] slice(int start, int end) {

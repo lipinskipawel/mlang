@@ -17,7 +17,9 @@ public enum OpCode {
     OP_NOT_EQUAL((byte) 10),
     OP_GREATER_THAN((byte) 11),
     OP_MINUS((byte) 12),
-    OP_BANG((byte) 13);
+    OP_BANG((byte) 13),
+    OP_JUMP_NOT_TRUTHY((byte) 14),
+    OP_JUMP((byte) 15);
 
     final byte opCode;
 
@@ -41,15 +43,13 @@ public enum OpCode {
             entry(OP_NOT_EQUAL, new Definition("OpNotEqual", new int[0])),
             entry(OP_GREATER_THAN, new Definition("OpGreaterThan", new int[0])),
             entry(OP_MINUS, new Definition("OpMinus", new int[0])),
-            entry(OP_BANG, new Definition("OpBang", new int[0]))
+            entry(OP_BANG, new Definition("OpBang", new int[0])),
+            entry(OP_JUMP_NOT_TRUTHY, new Definition("OpJumpNotTruthy", new int[]{2})),
+            entry(OP_JUMP, new Definition("OpJump", new int[]{2}))
     );
 
     public Definition definition() {
-        return switch (this) {
-            case OP_CONSTANT, OP_ADD, OP_POP, OP_SUB, OP_MUL, OP_DIV,
-                 OP_TRUE, OP_FALSE, OP_EQUAL, OP_NOT_EQUAL, OP_GREATER_THAN,
-                 OP_MINUS, OP_BANG -> DEFINITIONS.get(this);
-        };
+        return DEFINITIONS.get(this);
     }
 
     public static OpCode opCode(byte oneByte) {
@@ -67,6 +67,8 @@ public enum OpCode {
             case 11 -> OP_GREATER_THAN;
             case 12 -> OP_MINUS;
             case 13 -> OP_BANG;
+            case 14 -> OP_JUMP_NOT_TRUTHY;
+            case 15 -> OP_JUMP;
             default -> throw new IllegalArgumentException("No opcode defined for [%s]".formatted(oneByte));
         };
     }
@@ -86,6 +88,8 @@ public enum OpCode {
             case 11 -> DEFINITIONS.get(OP_GREATER_THAN);
             case 12 -> DEFINITIONS.get(OP_MINUS);
             case 13 -> DEFINITIONS.get(OP_BANG);
+            case 14 -> DEFINITIONS.get(OP_JUMP_NOT_TRUTHY);
+            case 15 -> DEFINITIONS.get(OP_JUMP);
             default -> throw new IllegalStateException("Unexpected value: " + op);
         };
     }
