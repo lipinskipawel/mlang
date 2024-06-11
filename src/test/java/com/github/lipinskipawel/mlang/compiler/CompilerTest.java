@@ -23,6 +23,7 @@ import static com.github.lipinskipawel.mlang.code.OpCode.OP_CONSTANT;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_DIV;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_EQUAL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_FALSE;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_GET_GLOBAL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_GREATER_THAN;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_JUMP;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_JUMP_NOT_TRUTHY;
@@ -31,6 +32,7 @@ import static com.github.lipinskipawel.mlang.code.OpCode.OP_MUL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_NOT_EQUAL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_NULL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_POP;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_SET_GLOBAL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_SUB;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_TRUE;
 import static com.github.lipinskipawel.mlang.compiler.Compiler.compiler;
@@ -200,6 +202,46 @@ class CompilerTest implements WithAssertions {
     @MethodSource("conditionals")
     @DisplayName("conditional expressions")
     void conditional_expressions(CompilerTestCase compilerTestCase) {
+        runCompiler(compilerTestCase);
+    }
+
+    private static Stream<Arguments> globalLetStatements() {
+        return Stream.of(
+                of(new CompilerTestCase("""
+                        let one = 1;
+                        let two = 2;
+                        """, List.of(1, 2), List.of(
+                        instructions(make(OP_CONSTANT, new int[]{0})),
+                        instructions(make(OP_SET_GLOBAL, new int[]{0})),
+                        instructions(make(OP_CONSTANT, new int[]{1})),
+                        instructions(make(OP_SET_GLOBAL, new int[]{1}))
+                ))),
+                of(new CompilerTestCase("""
+                        let one = 1;
+                        one;
+                        """, List.of(1), List.of(
+                        instructions(make(OP_CONSTANT, new int[]{0})),
+                        instructions(make(OP_SET_GLOBAL, new int[]{0})),
+                        instructions(make(OP_GET_GLOBAL, new int[]{0})),
+                        instructions(make(OP_POP, new int[0]))))),
+                of(new CompilerTestCase("""
+                        let one = 1;
+                        let two = one;
+                        two;
+                        """, List.of(1), List.of(
+                        instructions(make(OP_CONSTANT, new int[]{0})),
+                        instructions(make(OP_SET_GLOBAL, new int[]{0})),
+                        instructions(make(OP_GET_GLOBAL, new int[]{0})),
+                        instructions(make(OP_SET_GLOBAL, new int[]{1})),
+                        instructions(make(OP_GET_GLOBAL, new int[]{1})),
+                        instructions(make(OP_POP, new int[]{})))))
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("globalLetStatements")
+    @DisplayName("global let statements")
+    void global_let_statements(CompilerTestCase compilerTestCase) {
         runCompiler(compilerTestCase);
     }
 

@@ -13,6 +13,7 @@ import com.github.lipinskipawel.mlang.parser.ast.expression.IntegerLiteral;
 import com.github.lipinskipawel.mlang.parser.ast.expression.PrefixExpression;
 import com.github.lipinskipawel.mlang.parser.ast.statement.BlockStatement;
 import com.github.lipinskipawel.mlang.parser.ast.statement.ExpressionStatement;
+import com.github.lipinskipawel.mlang.parser.ast.statement.LetStatement;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -63,6 +64,12 @@ public final class Compiler {
                     if (result.isPresent()) {
                         return result;
                     }
+                }
+            }
+            case LetStatement letStatement -> {
+                final var error = compile(letStatement.value());
+                if (error.isPresent()) {
+                    return error;
                 }
             }
             case ExpressionStatement statement -> {
