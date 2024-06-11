@@ -88,6 +88,19 @@ public final class VirtualMachine {
                         return error;
                     }
                 }
+                case OP_JUMP -> {
+                    final var pos = readShort(instructions.slice(instructionPointer + 1, instructions.bytes().length));
+                    instructionPointer = pos - 1;
+                }
+                case OP_JUMP_NOT_TRUTHY -> {
+                    final var pos = readShort(instructions.slice(instructionPointer + 1, instructions.bytes().length));
+                    instructionPointer += 2;
+
+                    final var condition = pop();
+                    if (!isTruthy(condition)) {
+                        instructionPointer = pos - 1;
+                    }
+                }
             }
         }
 
@@ -195,6 +208,13 @@ public final class VirtualMachine {
 
     public MonkeyObject lastPoppedStackElement() {
         return stack[stackPointer];
+    }
+
+    private boolean isTruthy(MonkeyObject object) {
+        return switch (object.type()) {
+            case BOOLEAN_OBJ -> ((MonkeyBoolean) object).value();
+            default -> true;
+        };
     }
 
     private Optional<Object> push(MonkeyObject object) {

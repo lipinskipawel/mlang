@@ -92,6 +92,25 @@ class VirtualMachineTest implements WithAssertions {
         runVirtualMachineTest(vmTestCase);
     }
 
+    private static Stream<Arguments> conditionals() {
+        return Stream.of(
+                of(new VmTestCase("if (true) { 10 }", 10)),
+                of(new VmTestCase("if (true) { 10 } else { 20 }", 10)),
+                of(new VmTestCase("if (false) { 10 } else { 20 } ", 20)),
+                of(new VmTestCase("if (1) { 10 }", 10)),
+                of(new VmTestCase("if (1 < 2) { 10 }", 10)),
+                of(new VmTestCase("if (1 < 2) { 10 } else { 20 }", 10)),
+                of(new VmTestCase("if (1 > 2) { 10 } else { 20 }", 20))
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("conditionals")
+    @DisplayName("conditional expressions")
+    void conditional_expressions(VmTestCase vmTestCase) {
+        runVirtualMachineTest(vmTestCase);
+    }
+
     private void runVirtualMachineTest(VmTestCase vmTestCase) {
         var program = parse(vmTestCase.input());
 
