@@ -5,6 +5,7 @@ import com.github.lipinskipawel.mlang.code.OpCode;
 import com.github.lipinskipawel.mlang.compiler.Bytecode;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyBoolean;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyInteger;
+import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyNull;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyObject;
 
 import java.nio.ByteBuffer;
@@ -18,6 +19,7 @@ import static java.util.Optional.empty;
 import static java.util.Optional.of;
 
 public final class VirtualMachine {
+    static final MonkeyNull NULL = new MonkeyNull();
     private static final int STACK_SIZE = 2048;
     private static final MonkeyBoolean TRUE = new MonkeyBoolean(true);
     private static final MonkeyBoolean FALSE = new MonkeyBoolean(false);
@@ -99,6 +101,12 @@ public final class VirtualMachine {
                     final var condition = pop();
                     if (!isTruthy(condition)) {
                         instructionPointer = pos - 1;
+                    }
+                }
+                case OP_NULL -> {
+                    final var error = push(NULL);
+                    if (error.isPresent()) {
+                        return error;
                     }
                 }
             }
@@ -190,6 +198,7 @@ public final class VirtualMachine {
                     push(TRUE);
                 }
             }
+            case MonkeyNull monkeyNull -> push(TRUE);
             default -> push(FALSE);
         }
         return empty();
@@ -213,6 +222,7 @@ public final class VirtualMachine {
     private boolean isTruthy(MonkeyObject object) {
         return switch (object.type()) {
             case BOOLEAN_OBJ -> ((MonkeyBoolean) object).value();
+            case NULL_OBJ -> false;
             default -> true;
         };
     }

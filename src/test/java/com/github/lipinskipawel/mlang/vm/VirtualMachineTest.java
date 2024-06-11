@@ -2,6 +2,7 @@ package com.github.lipinskipawel.mlang.vm;
 
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyBoolean;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyInteger;
+import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyNull;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyObject;
 import com.github.lipinskipawel.mlang.parser.Parser;
 import com.github.lipinskipawel.mlang.parser.ast.Program;
@@ -15,6 +16,7 @@ import java.util.stream.Stream;
 
 import static com.github.lipinskipawel.mlang.compiler.Compiler.compiler;
 import static com.github.lipinskipawel.mlang.lexer.Lexer.lexer;
+import static com.github.lipinskipawel.mlang.vm.VirtualMachine.NULL;
 import static com.github.lipinskipawel.mlang.vm.VirtualMachine.virtualMachine;
 import static org.junit.jupiter.params.provider.Arguments.of;
 
@@ -81,7 +83,8 @@ class VirtualMachineTest implements WithAssertions {
                 of(new VmTestCase("!5", false)),
                 of(new VmTestCase("!!true", true)),
                 of(new VmTestCase("!!false", false)),
-                of(new VmTestCase("!!5", true))
+                of(new VmTestCase("!!5", true)),
+                of(new VmTestCase("!(if (false) { 5; })", true))
         );
     }
 
@@ -100,7 +103,10 @@ class VirtualMachineTest implements WithAssertions {
                 of(new VmTestCase("if (1) { 10 }", 10)),
                 of(new VmTestCase("if (1 < 2) { 10 }", 10)),
                 of(new VmTestCase("if (1 < 2) { 10 } else { 20 }", 10)),
-                of(new VmTestCase("if (1 > 2) { 10 } else { 20 }", 20))
+                of(new VmTestCase("if (1 > 2) { 10 } else { 20 }", 20)),
+                of(new VmTestCase("if (1 > 2) { 10 }", NULL)),
+                of(new VmTestCase("if (false) { 10 }", NULL)),
+                of(new VmTestCase("if ((if (false) { 10 })) { 10 } else { 20 }", 20))
         );
     }
 
@@ -131,6 +137,7 @@ class VirtualMachineTest implements WithAssertions {
         switch (expected) {
             case Integer integer -> testIntegerObject(actual, integer);
             case Boolean bool -> testBooleanObject(actual, bool);
+            case MonkeyNull monkeyNull -> assertThat(actual).isEqualTo(monkeyNull);
             default -> throw new IllegalStateException("Unexpected value: " + expected);
         }
     }

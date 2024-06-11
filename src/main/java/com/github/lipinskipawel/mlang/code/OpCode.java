@@ -19,7 +19,8 @@ public enum OpCode {
     OP_MINUS((byte) 12),
     OP_BANG((byte) 13),
     OP_JUMP_NOT_TRUTHY((byte) 14),
-    OP_JUMP((byte) 15);
+    OP_JUMP((byte) 15),
+    OP_NULL((byte) 16);
 
     final byte opCode;
 
@@ -45,7 +46,8 @@ public enum OpCode {
             entry(OP_MINUS, new Definition("OpMinus", new int[0])),
             entry(OP_BANG, new Definition("OpBang", new int[0])),
             entry(OP_JUMP_NOT_TRUTHY, new Definition("OpJumpNotTruthy", new int[]{2})),
-            entry(OP_JUMP, new Definition("OpJump", new int[]{2}))
+            entry(OP_JUMP, new Definition("OpJump", new int[]{2})),
+            entry(OP_NULL, new Definition("OpNull", new int[0]))
     );
 
     public Definition definition() {
@@ -69,6 +71,7 @@ public enum OpCode {
             case 13 -> OP_BANG;
             case 14 -> OP_JUMP_NOT_TRUTHY;
             case 15 -> OP_JUMP;
+            case 16 -> OP_NULL;
             default -> throw new IllegalArgumentException("No opcode defined for [%s]".formatted(oneByte));
         };
     }
@@ -90,6 +93,7 @@ public enum OpCode {
             case 13 -> DEFINITIONS.get(OP_BANG);
             case 14 -> DEFINITIONS.get(OP_JUMP_NOT_TRUTHY);
             case 15 -> DEFINITIONS.get(OP_JUMP);
+            case 16 -> DEFINITIONS.get(OP_NULL);
             default -> throw new IllegalStateException("Unexpected value: " + op);
         };
     }

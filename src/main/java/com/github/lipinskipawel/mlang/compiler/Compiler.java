@@ -33,6 +33,7 @@ import static com.github.lipinskipawel.mlang.code.OpCode.OP_JUMP_NOT_TRUTHY;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_MINUS;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_MUL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_NOT_EQUAL;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_NULL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_POP;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_SUB;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_TRUE;
@@ -146,15 +147,14 @@ public final class Compiler {
                     removeLastPop();
                 }
 
+                final var jumpPos = emit(OP_JUMP, 3333);
+
+                final var afterConsequencePos = instructions.length();
+                changeOperand(jumpNotTruthyPos, afterConsequencePos);
+
                 if (ifExpression.alternative() == null) {
-                    final var afterConsequencePos = instructions.length();
-                    changeOperand(jumpNotTruthyPos, afterConsequencePos);
+                    emit(OP_NULL);
                 } else {
-                    final var jumpPos = emit(OP_JUMP, 3333);
-
-                    final var afterConsequencePos = instructions.length();
-                    changeOperand(jumpNotTruthyPos, afterConsequencePos);
-
                     error = compile(ifExpression.alternative());
                     if (error.isPresent()) {
                         return error;
@@ -163,10 +163,10 @@ public final class Compiler {
                     if (lastInstructionIsPop()) {
                         removeLastPop();
                     }
-
-                    final var afterAlternativePos = instructions.length();
-                    changeOperand(jumpPos, afterAlternativePos);
                 }
+
+                final var afterAlternativePos = instructions.length();
+                changeOperand(jumpPos, afterAlternativePos);
             }
             case BlockStatement blockStatement -> {
                 for (var statement : blockStatement.statements()) {

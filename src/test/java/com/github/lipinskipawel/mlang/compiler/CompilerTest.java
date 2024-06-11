@@ -29,6 +29,7 @@ import static com.github.lipinskipawel.mlang.code.OpCode.OP_JUMP_NOT_TRUTHY;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_MINUS;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_MUL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_NOT_EQUAL;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_NULL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_POP;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_SUB;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_TRUE;
@@ -160,14 +161,18 @@ class CompilerTest implements WithAssertions {
                         // 0000
                         instructions(make(OP_TRUE, new int[0])),
                         // 0001
-                        instructions(make(OP_JUMP_NOT_TRUTHY, new int[]{7})),
+                        instructions(make(OP_JUMP_NOT_TRUTHY, new int[]{10})),
                         // 0004
                         instructions(make(OP_CONSTANT, new int[]{0})),
                         // 0007
-                        instructions(make(OP_POP, new int[0])),
-                        // 0008
-                        instructions(make(OP_CONSTANT, new int[]{1})),
+                        instructions(make(OP_JUMP, new int[]{11})),
+                        // 0010
+                        instructions(make(OP_NULL, new int[0])),
                         // 0011
+                        instructions(make(OP_POP, new int[0])),
+                        // 0012
+                        instructions(make(OP_CONSTANT, new int[]{1})),
+                        // 0015
                         instructions(make(OP_POP, new int[0]))
                 ))),
                 of(new CompilerTestCase("if (true) { 10; } else { 20; }; 3333;", List.of(10, 20, 3333), List.of(
