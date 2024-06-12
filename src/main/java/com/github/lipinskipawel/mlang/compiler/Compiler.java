@@ -7,6 +7,7 @@ import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyObject;
 import com.github.lipinskipawel.mlang.parser.ast.Node;
 import com.github.lipinskipawel.mlang.parser.ast.Program;
 import com.github.lipinskipawel.mlang.parser.ast.expression.BooleanExpression;
+import com.github.lipinskipawel.mlang.parser.ast.expression.Identifier;
 import com.github.lipinskipawel.mlang.parser.ast.expression.IfExpression;
 import com.github.lipinskipawel.mlang.parser.ast.expression.InfixExpression;
 import com.github.lipinskipawel.mlang.parser.ast.expression.IntegerLiteral;
@@ -28,6 +29,7 @@ import static com.github.lipinskipawel.mlang.code.OpCode.OP_CONSTANT;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_DIV;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_EQUAL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_FALSE;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_GET_GLOBAL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_GREATER_THAN;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_JUMP;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_JUMP_NOT_TRUTHY;
@@ -36,24 +38,30 @@ import static com.github.lipinskipawel.mlang.code.OpCode.OP_MUL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_NOT_EQUAL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_NULL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_POP;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_SET_GLOBAL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_SUB;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_TRUE;
 import static com.github.lipinskipawel.mlang.code.OpCode.opCode;
+import static com.github.lipinskipawel.mlang.compiler.SymbolTable.symbolTable;
+import static java.util.Objects.requireNonNull;
 import static java.util.Optional.empty;
+import static java.util.Optional.of;
 
 public final class Compiler {
     private final Instructions instructions;
     private final List<MonkeyObject> constants;
+    private final SymbolTable symbolTable;
     private EmittedInstructions lastInstruction;
     private EmittedInstructions previousInstruction;
 
-    private Compiler(Instructions instructions, List<MonkeyObject> constants) {
-        this.instructions = instructions;
-        this.constants = constants;
+    private Compiler(Instructions instructions, List<MonkeyObject> constants, SymbolTable symbolTable) {
+        this.instructions = requireNonNull(instructions);
+        this.constants = requireNonNull(constants);
+        this.symbolTable = requireNonNull(symbolTable);
     }
 
     public static Compiler compiler() {
-        return new Compiler(noInstructions(), new ArrayList<>());
+        return new Compiler(noInstructions(), new ArrayList<>(), symbolTable());
     }
 
     public Optional<Object> compile(Node ast) {
@@ -71,6 +79,16 @@ public final class Compiler {
                 if (error.isPresent()) {
                     return error;
                 }
+
+                final var symbol = symbolTable.define(letStatement.name().value());
+                emit(OP_SET_GLOBAL, symbol.index());
+            }
+            case Identifier identifier -> {
+                final var resolve = symbolTable.resolve(identifier.value());
+                if (resolve.isEmpty()) {
+                    return of("undefined variable [%s]".formatted(identifier.value()));
+                }
+                emit(OP_GET_GLOBAL, resolve.get().index());
             }
             case ExpressionStatement statement -> {
                 final var result = compile(statement.expression());
