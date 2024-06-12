@@ -1,14 +1,19 @@
 package com.github.lipinskipawel.mlang.repl;
 
+import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyObject;
 import com.github.lipinskipawel.mlang.parser.Parser;
 
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 
 import static com.github.lipinskipawel.mlang.compiler.Compiler.compiler;
+import static com.github.lipinskipawel.mlang.compiler.SymbolTable.symbolTable;
 import static com.github.lipinskipawel.mlang.lexer.Lexer.lexer;
+import static com.github.lipinskipawel.mlang.vm.VirtualMachine.GLOBAL_SIZE;
 import static com.github.lipinskipawel.mlang.vm.VirtualMachine.virtualMachine;
 
 final class Repl {
@@ -30,6 +35,11 @@ final class Repl {
     static void repl(OutputStream outputStream, InputStream inputStream) {
         final var output = new PrintStream(outputStream);
         try (var scanner = new Scanner(inputStream)) {
+
+            final List<MonkeyObject> constants = new ArrayList<>();
+            final MonkeyObject[] globals = new MonkeyObject[GLOBAL_SIZE];
+            final var symbolTable = symbolTable();
+
             while (true) {
                 output.print(PROMPT);
 
@@ -43,14 +53,14 @@ final class Repl {
                     continue;
                 }
 
-                final var compiler = compiler();
+                final var compiler = compiler(constants, symbolTable);
                 var error = compiler.compile(program);
                 if (error.isPresent()) {
                     output.printf("Compilation failed [%s]%n", error.get());
                     continue;
                 }
 
-                final var vm = virtualMachine(compiler.bytecode());
+                final var vm = virtualMachine(compiler.bytecode(), globals);
                 error = vm.run();
                 if (error.isPresent()) {
                     output.printf("Executing bytecode failed [%s]%n", error.get());

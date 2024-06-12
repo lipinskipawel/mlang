@@ -19,6 +19,7 @@ import static java.util.Optional.empty;
 import static java.util.Optional.of;
 
 public final class VirtualMachine {
+    public static final int GLOBAL_SIZE = 65536;
     static final MonkeyNull NULL = new MonkeyNull();
     private static final int STACK_SIZE = 2048;
     private static final MonkeyBoolean TRUE = new MonkeyBoolean(true);
@@ -28,15 +29,26 @@ public final class VirtualMachine {
     private final Instructions instructions;
     private final MonkeyObject[] stack; // we can define limit on the queue but can't in Stack
     private int stackPointer = 0;
+    private final MonkeyObject[] globals;
 
-    private VirtualMachine(List<MonkeyObject> constants, Instructions instructions, MonkeyObject[] stack) {
+    private VirtualMachine(
+            List<MonkeyObject> constants,
+            Instructions instructions,
+            MonkeyObject[] stack,
+            MonkeyObject[] globals
+    ) {
         this.constants = constants;
         this.instructions = instructions;
         this.stack = stack;
+        this.globals = globals;
     }
 
     public static VirtualMachine virtualMachine(Bytecode bytecode) {
-        return new VirtualMachine(bytecode.constants(), bytecode.instructions(), new MonkeyObject[STACK_SIZE]);
+        return virtualMachine(bytecode, new MonkeyObject[GLOBAL_SIZE]);
+    }
+
+    public static VirtualMachine virtualMachine(Bytecode bytecode, MonkeyObject[] globals) {
+        return new VirtualMachine(bytecode.constants(), bytecode.instructions(), new MonkeyObject[STACK_SIZE], globals);
     }
 
     // fetch-decode-execute cycle
@@ -105,6 +117,21 @@ public final class VirtualMachine {
                 }
                 case OP_NULL -> {
                     final var error = push(NULL);
+                    if (error.isPresent()) {
+                        return error;
+                    }
+                }
+                case OP_SET_GLOBAL -> {
+                    final var globalIndex = readShort(instructions.slice(instructionPointer + 1, instructions.bytes().length));
+                    instructionPointer += 2;
+
+                    globals[globalIndex] = pop();
+                }
+                case OP_GET_GLOBAL -> {
+                    final var globalIndex = readShort(instructions.slice(instructionPointer + 1, instructions.bytes().length));
+                    instructionPointer += 2;
+
+                    final var error = push(globals[globalIndex]);
                     if (error.isPresent()) {
                         return error;
                     }

@@ -117,6 +117,21 @@ class VirtualMachineTest implements WithAssertions {
         runVirtualMachineTest(vmTestCase);
     }
 
+    private static Stream<Arguments> globalLetStatements() {
+        return Stream.of(
+                of(new VmTestCase("let one = 1; one", 1)),
+                of(new VmTestCase("let one = 1; let two = 2; one + two", 3)),
+                of(new VmTestCase("let one = 1; let two = one + one; one + two", 3))
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("globalLetStatements")
+    @DisplayName("global let statements")
+    void global_let_statement(VmTestCase vmTestCase) {
+        runVirtualMachineTest(vmTestCase);
+    }
+
     private void runVirtualMachineTest(VmTestCase vmTestCase) {
         var program = parse(vmTestCase.input());
 

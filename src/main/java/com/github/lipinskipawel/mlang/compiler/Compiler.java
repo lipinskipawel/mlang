@@ -61,7 +61,11 @@ public final class Compiler {
     }
 
     public static Compiler compiler() {
-        return new Compiler(noInstructions(), new ArrayList<>(), symbolTable());
+        return compiler(new ArrayList<>(), symbolTable());
+    }
+
+    public static Compiler compiler(List<MonkeyObject> constants, SymbolTable symbolTable) {
+        return new Compiler(noInstructions(), constants, symbolTable);
     }
 
     public Optional<Object> compile(Node ast) {
