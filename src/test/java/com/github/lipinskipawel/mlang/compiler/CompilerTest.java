@@ -19,6 +19,7 @@ import static com.github.lipinskipawel.mlang.code.Instructions.instructions;
 import static com.github.lipinskipawel.mlang.code.Instructions.make;
 import static com.github.lipinskipawel.mlang.code.Instructions.merge;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_ADD;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_ARRAY;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_BANG;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_CONSTANT;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_DIV;
@@ -268,6 +269,42 @@ class CompilerTest implements WithAssertions {
     @ParameterizedTest
     @MethodSource("strings")
     void string_expressions(CompilerTestCase compilerTestCase) {
+        runCompiler(compilerTestCase);
+    }
+
+    private static Stream<Arguments> arrays() {
+        return Stream.of(
+                of(new CompilerTestCase("[]", List.of(), List.of(
+                        instructions(make(OP_ARRAY, new int[]{0})),
+                        instructions(make(OP_POP, new int[0]))
+                ))),
+                of(new CompilerTestCase("[1, 2, 3]", List.of(1, 2, 3), List.of(
+                        instructions(make(OP_CONSTANT, new int[]{0})),
+                        instructions(make(OP_CONSTANT, new int[]{1})),
+                        instructions(make(OP_CONSTANT, new int[]{2})),
+                        instructions(make(OP_ARRAY, new int[]{3})),
+                        instructions(make(OP_POP, new int[0]))
+                ))),
+                of(new CompilerTestCase("[1 + 2, 3 - 4, 5 * 6]", List.of(1, 2, 3, 4, 5, 6), List.of(
+                        instructions(make(OP_CONSTANT, new int[]{0})),
+                        instructions(make(OP_CONSTANT, new int[]{1})),
+                        instructions(make(OP_ADD, new int[0])),
+                        instructions(make(OP_CONSTANT, new int[]{2})),
+                        instructions(make(OP_CONSTANT, new int[]{3})),
+                        instructions(make(OP_SUB, new int[0])),
+                        instructions(make(OP_CONSTANT, new int[]{4})),
+                        instructions(make(OP_CONSTANT, new int[]{5})),
+                        instructions(make(OP_MUL, new int[0])),
+                        instructions(make(OP_ARRAY, new int[]{3})),
+                        instructions(make(OP_POP, new int[0]))
+                )))
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("arrays")
+    @DisplayName("array expression")
+    void array_expressions(CompilerTestCase compilerTestCase) {
         runCompiler(compilerTestCase);
     }
 

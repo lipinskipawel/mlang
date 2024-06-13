@@ -1,5 +1,6 @@
 package com.github.lipinskipawel.mlang.vm;
 
+import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyArray;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyBoolean;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyInteger;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyNull;
@@ -13,6 +14,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static com.github.lipinskipawel.mlang.compiler.Compiler.compiler;
@@ -153,6 +155,21 @@ class VirtualMachineTest implements WithAssertions {
         runVirtualMachineTest(vmTestCase);
     }
 
+    private static Stream<Arguments> arrays() {
+        return Stream.of(
+                of(new VmTestCase("[]", new int[0])),
+                of(new VmTestCase("[1, 2, 3]", IntStream.of(1, 2, 3).toArray())),
+                of(new VmTestCase("[1 + 2, 3 * 4, 5 + 6]", IntStream.of(3, 12, 11).toArray()))
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("arrays")
+    @DisplayName("array expression")
+    void array_expression(VmTestCase vmTestCase) {
+        runVirtualMachineTest(vmTestCase);
+    }
+
     private void runVirtualMachineTest(VmTestCase vmTestCase) {
         var program = parse(vmTestCase.input());
 
@@ -174,6 +191,7 @@ class VirtualMachineTest implements WithAssertions {
             case Integer integer -> testIntegerObject(actual, integer);
             case String string -> testStringObject(actual, string);
             case Boolean bool -> testBooleanObject(actual, bool);
+            case int[] array -> testArrayObject(actual, array);
             case MonkeyNull monkeyNull -> assertThat(actual).isEqualTo(monkeyNull);
             default -> throw new IllegalStateException("Unexpected value: " + expected);
         }
@@ -206,6 +224,19 @@ class VirtualMachineTest implements WithAssertions {
                     assertThat(bool.value()).isEqualTo(expected);
                 }
         );
+    }
+
+    private void testArrayObject(MonkeyObject actual, int[] expected) {
+        assertThat(actual).satisfies(it -> {
+            assertThat(it).isInstanceOf(MonkeyArray.class);
+
+            var array = (MonkeyArray) actual;
+            assertThat(expected.length).isEqualTo(array.elements().size());
+
+            for (var i = 0; i < expected.length; i++) {
+                testIntegerObject(array.elements().get(i), expected[i]);
+            }
+        });
     }
 
     private Program parse(String input) {

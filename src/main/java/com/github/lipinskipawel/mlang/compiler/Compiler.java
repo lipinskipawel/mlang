@@ -7,6 +7,7 @@ import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyObject;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyString;
 import com.github.lipinskipawel.mlang.parser.ast.Node;
 import com.github.lipinskipawel.mlang.parser.ast.Program;
+import com.github.lipinskipawel.mlang.parser.ast.expression.ArrayLiteral;
 import com.github.lipinskipawel.mlang.parser.ast.expression.BooleanExpression;
 import com.github.lipinskipawel.mlang.parser.ast.expression.Identifier;
 import com.github.lipinskipawel.mlang.parser.ast.expression.IfExpression;
@@ -26,6 +27,7 @@ import static com.github.lipinskipawel.mlang.code.Instructions.instructions;
 import static com.github.lipinskipawel.mlang.code.Instructions.make;
 import static com.github.lipinskipawel.mlang.code.Instructions.noInstructions;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_ADD;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_ARRAY;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_BANG;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_CONSTANT;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_DIV;
@@ -210,6 +212,15 @@ public final class Compiler {
                         return error;
                     }
                 }
+            }
+            case ArrayLiteral arrayLiteral -> {
+                for (var expression : arrayLiteral.elements()) {
+                    final var error = compile(expression);
+                    if (error.isPresent()) {
+                        return error;
+                    }
+                }
+                emit(OP_ARRAY, arrayLiteral.elements().size());
             }
             default -> throw new IllegalStateException("Unexpected value: " + ast);
         }

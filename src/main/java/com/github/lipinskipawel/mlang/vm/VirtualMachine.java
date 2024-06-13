@@ -3,6 +3,7 @@ package com.github.lipinskipawel.mlang.vm;
 import com.github.lipinskipawel.mlang.code.Instructions;
 import com.github.lipinskipawel.mlang.code.OpCode;
 import com.github.lipinskipawel.mlang.compiler.Bytecode;
+import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyArray;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyBoolean;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyInteger;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyNull;
@@ -20,6 +21,7 @@ import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.STRING
 import static java.nio.ByteOrder.BIG_ENDIAN;
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
+import static java.util.stream.Stream.iterate;
 
 public final class VirtualMachine {
     public static final int GLOBAL_SIZE = 65536;
@@ -135,6 +137,18 @@ public final class VirtualMachine {
                     instructionPointer += 2;
 
                     final var error = push(globals[globalIndex]);
+                    if (error.isPresent()) {
+                        return error;
+                    }
+                }
+                case OP_ARRAY -> {
+                    final var arrayLength = readShort(instructions.slice(instructionPointer + 1, instructions.bytes().length));
+                    instructionPointer += 2;
+
+                    final var error = push(new MonkeyArray(iterate(1, i -> i <= arrayLength, i -> i + 1)
+                            .map(it -> pop())
+                            .toList()
+                            .reversed()));
                     if (error.isPresent()) {
                         return error;
                     }
