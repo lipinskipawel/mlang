@@ -7,13 +7,16 @@ import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyBoolean;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyInteger;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyNull;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyObject;
+import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyString;
 
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Optional;
 
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_ADD;
 import static com.github.lipinskipawel.mlang.code.OpCode.opCode;
 import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.INTEGER_OBJ;
+import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.STRING_OBJ;
 import static java.nio.ByteOrder.BIG_ENDIAN;
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
@@ -153,6 +156,10 @@ public final class VirtualMachine {
             return executeBinaryInteger(op, left, right);
         }
 
+        if (leftType == STRING_OBJ && rightType == STRING_OBJ) {
+            return executeBinaryString(op, left, right);
+        }
+
         return of("unsupported types for binary operation: %s %s".formatted(leftType, rightType));
     }
 
@@ -171,6 +178,17 @@ public final class VirtualMachine {
             return of(error.get());
         }
         return push(new MonkeyInteger((int) result));
+    }
+
+    private Optional<Object> executeBinaryString(OpCode op, MonkeyObject left, MonkeyObject right) {
+        if (op != OP_ADD) {
+            return of("unknown string operator [%s]".formatted(op));
+        }
+
+        final var leftValue = ((MonkeyString) left).value();
+        final var rightValue = ((MonkeyString) right).value();
+
+        return push(new MonkeyString(leftValue + rightValue));
     }
 
     private Optional<Object> executeComparison(OpCode op) {

@@ -4,6 +4,7 @@ import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyBoolean;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyInteger;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyNull;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyObject;
+import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyString;
 import com.github.lipinskipawel.mlang.parser.Parser;
 import com.github.lipinskipawel.mlang.parser.ast.Program;
 import org.assertj.core.api.WithAssertions;
@@ -132,6 +133,26 @@ class VirtualMachineTest implements WithAssertions {
         runVirtualMachineTest(vmTestCase);
     }
 
+    private static Stream<Arguments> strings() {
+        return Stream.of(
+                of(new VmTestCase(("""
+                        "monkey"
+                        """), "monkey")),
+                of(new VmTestCase(("""
+                        "mon" + "key"
+                        """), "monkey")),
+                of(new VmTestCase(("""
+                        "mon" + "key" + "banana"
+                        """), "monkeybanana"))
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("strings")
+    void string_expressions(VmTestCase vmTestCase) {
+        runVirtualMachineTest(vmTestCase);
+    }
+
     private void runVirtualMachineTest(VmTestCase vmTestCase) {
         var program = parse(vmTestCase.input());
 
@@ -151,6 +172,7 @@ class VirtualMachineTest implements WithAssertions {
     private void testExpectedObject(Object expected, MonkeyObject actual) {
         switch (expected) {
             case Integer integer -> testIntegerObject(actual, integer);
+            case String string -> testStringObject(actual, string);
             case Boolean bool -> testBooleanObject(actual, bool);
             case MonkeyNull monkeyNull -> assertThat(actual).isEqualTo(monkeyNull);
             default -> throw new IllegalStateException("Unexpected value: " + expected);
@@ -165,6 +187,15 @@ class VirtualMachineTest implements WithAssertions {
                     assertThat(integer.value()).isEqualTo(expected);
                 }
         );
+    }
+
+    private void testStringObject(MonkeyObject actual, String expected) {
+        assertThat(actual).satisfies(it -> {
+            assertThat(it).isInstanceOf(MonkeyString.class);
+
+            var str = (MonkeyString) it;
+            assertThat(str.value()).isEqualTo(expected);
+        });
     }
 
     private void testBooleanObject(MonkeyObject actual, boolean expected) {

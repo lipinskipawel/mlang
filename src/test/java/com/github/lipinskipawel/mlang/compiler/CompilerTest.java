@@ -3,6 +3,7 @@ package com.github.lipinskipawel.mlang.compiler;
 import com.github.lipinskipawel.mlang.code.Instructions;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyInteger;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyObject;
+import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyString;
 import com.github.lipinskipawel.mlang.parser.Parser;
 import com.github.lipinskipawel.mlang.parser.ast.Program;
 import org.assertj.core.api.WithAssertions;
@@ -245,6 +246,31 @@ class CompilerTest implements WithAssertions {
         runCompiler(compilerTestCase);
     }
 
+    private static Stream<Arguments> strings() {
+        return Stream.of(
+                of(new CompilerTestCase("""
+                        "monkey"
+                        """, List.of("monkey"), List.of(
+                        instructions(make(OP_CONSTANT, new int[]{0})),
+                        instructions(make(OP_POP, new int[0]))
+                ))),
+                of(new CompilerTestCase("""
+                        "mon" + "key"
+                        """, List.of("mon", "key"), List.of(
+                        instructions(make(OP_CONSTANT, new int[]{0})),
+                        instructions(make(OP_CONSTANT, new int[]{1})),
+                        instructions(make(OP_ADD, new int[0])),
+                        instructions(make(OP_POP, new int[0]))
+                )))
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("strings")
+    void string_expressions(CompilerTestCase compilerTestCase) {
+        runCompiler(compilerTestCase);
+    }
+
     private void runCompiler(CompilerTestCase compilerTestCase) {
         var program = parse(compilerTestCase.input());
 
@@ -284,6 +310,7 @@ class CompilerTest implements WithAssertions {
             var constant = expected.get(i);
             switch (constant) {
                 case Integer integer -> testIntegerObject(actual.get(i), integer);
+                case String string -> testStringObject(actual.get(i), string);
                 default -> throw new IllegalStateException("Unexpected value: " + constant);
             }
         }
@@ -295,6 +322,16 @@ class CompilerTest implements WithAssertions {
                 obj -> {
                     var integer = (MonkeyInteger) obj;
                     assertThat(integer.value()).isEqualTo(expected);
+                }
+        );
+    }
+
+    private void testStringObject(MonkeyObject actual, String expected) {
+        assertThat(actual).satisfies(it -> {
+                    assertThat(it).isInstanceOf(MonkeyString.class);
+
+                    var str = (MonkeyString) actual;
+                    assertThat(str.value()).isEqualTo(expected);
                 }
         );
     }

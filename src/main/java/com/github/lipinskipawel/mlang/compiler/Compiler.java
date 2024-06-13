@@ -4,6 +4,7 @@ import com.github.lipinskipawel.mlang.code.Instructions;
 import com.github.lipinskipawel.mlang.code.OpCode;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyInteger;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyObject;
+import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyString;
 import com.github.lipinskipawel.mlang.parser.ast.Node;
 import com.github.lipinskipawel.mlang.parser.ast.Program;
 import com.github.lipinskipawel.mlang.parser.ast.expression.BooleanExpression;
@@ -12,6 +13,7 @@ import com.github.lipinskipawel.mlang.parser.ast.expression.IfExpression;
 import com.github.lipinskipawel.mlang.parser.ast.expression.InfixExpression;
 import com.github.lipinskipawel.mlang.parser.ast.expression.IntegerLiteral;
 import com.github.lipinskipawel.mlang.parser.ast.expression.PrefixExpression;
+import com.github.lipinskipawel.mlang.parser.ast.expression.StringLiteral;
 import com.github.lipinskipawel.mlang.parser.ast.statement.BlockStatement;
 import com.github.lipinskipawel.mlang.parser.ast.statement.ExpressionStatement;
 import com.github.lipinskipawel.mlang.parser.ast.statement.LetStatement;
@@ -151,6 +153,10 @@ public final class Compiler {
             case IntegerLiteral integer -> {
                 final var monkeyInteger = new MonkeyInteger(integer.value());
                 emit(OP_CONSTANT, addConstant(monkeyInteger));
+            }
+            case StringLiteral string -> {
+                final var monkeyString = new MonkeyString(string.value());
+                emit(OP_CONSTANT, addConstant(monkeyString));
             }
             case BooleanExpression booleanExpression -> {
                 if (booleanExpression.value()) {
