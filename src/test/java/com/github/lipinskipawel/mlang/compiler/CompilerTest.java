@@ -27,6 +27,7 @@ import static com.github.lipinskipawel.mlang.code.OpCode.OP_EQUAL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_FALSE;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_GET_GLOBAL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_GREATER_THAN;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_HASH;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_JUMP;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_JUMP_NOT_TRUTHY;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_MINUS;
@@ -305,6 +306,44 @@ class CompilerTest implements WithAssertions {
     @MethodSource("arrays")
     @DisplayName("array expression")
     void array_expressions(CompilerTestCase compilerTestCase) {
+        runCompiler(compilerTestCase);
+    }
+
+    private static Stream<Arguments> hashs() {
+        return Stream.of(
+                of(new CompilerTestCase("{}", List.of(), List.of(
+                        instructions(make(OP_HASH, new int[0])),
+                        instructions(make(OP_POP, new int[0]))
+                ))),
+                of(new CompilerTestCase("{1: 2, 3: 4, 5: 6}", List.of(1, 2, 3, 4, 5, 6), List.of(
+                        instructions(make(OP_CONSTANT, new int[]{0})),
+                        instructions(make(OP_CONSTANT, new int[]{1})),
+                        instructions(make(OP_CONSTANT, new int[]{2})),
+                        instructions(make(OP_CONSTANT, new int[]{3})),
+                        instructions(make(OP_CONSTANT, new int[]{4})),
+                        instructions(make(OP_CONSTANT, new int[]{5})),
+                        instructions(make(OP_HASH, new int[]{6})),
+                        instructions(make(OP_POP, new int[0]))
+                ))),
+                of(new CompilerTestCase("{1: 2 + 3, 4: 5 * 6}", List.of(1, 2, 3, 4, 5, 6), List.of(
+                        instructions(make(OP_CONSTANT, new int[]{0})),
+                        instructions(make(OP_CONSTANT, new int[]{1})),
+                        instructions(make(OP_CONSTANT, new int[]{2})),
+                        instructions(make(OP_ADD, new int[0])),
+                        instructions(make(OP_CONSTANT, new int[]{3})),
+                        instructions(make(OP_CONSTANT, new int[]{4})),
+                        instructions(make(OP_CONSTANT, new int[]{5})),
+                        instructions(make(OP_MUL, new int[0])),
+                        instructions(make(OP_HASH, new int[]{4})),
+                        instructions(make(OP_POP, new int[0]))
+                )))
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("hashs")
+    @DisplayName("hash expressions")
+    void hash_expressions(CompilerTestCase compilerTestCase) {
         runCompiler(compilerTestCase);
     }
 

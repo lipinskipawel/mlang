@@ -5,6 +5,7 @@ import com.github.lipinskipawel.mlang.code.OpCode;
 import com.github.lipinskipawel.mlang.compiler.Bytecode;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyArray;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyBoolean;
+import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyHash;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyInteger;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyNull;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyObject;
@@ -149,6 +150,24 @@ public final class VirtualMachine {
                             .map(it -> pop())
                             .toList()
                             .reversed()));
+                    if (error.isPresent()) {
+                        return error;
+                    }
+                }
+                case OP_HASH -> {
+                    final var hashLength = readShort(instructions.slice(instructionPointer + 1, instructions.bytes().length));
+                    instructionPointer += 2;
+
+                    final var entries = iterate(1, i -> i <= hashLength, i -> i + 1)
+                            .map(it -> pop())
+                            .toList()
+                            .reversed();
+                    final var hash = new MonkeyHash();
+                    for (var i = 0; i < hashLength; i = i + 2) {
+                        hash.put(entries.get(i), entries.get(i + 1));
+                    }
+
+                    final var error = push(hash);
                     if (error.isPresent()) {
                         return error;
                     }

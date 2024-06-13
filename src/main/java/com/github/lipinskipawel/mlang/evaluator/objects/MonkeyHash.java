@@ -1,12 +1,16 @@
 package com.github.lipinskipawel.mlang.evaluator.objects;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.HASH_OBJ;
 import static java.util.stream.Collectors.joining;
 
-public final class MonkeyHash extends MonkeyObject {
+public final class MonkeyHash
+        extends MonkeyObject
+        implements Iterable<Map.Entry<HashKey, MonkeyHash.HashPair>> {
+
     public record HashPair(MonkeyObject key, MonkeyObject value) {
     }
 
@@ -29,6 +33,11 @@ public final class MonkeyHash extends MonkeyObject {
                 .map(hashPair -> hashPair.key.inspect() + ": " + hashPair.value.inspect())
                 .collect(joining(", "))
                 + "}";
+    }
+
+    @Override
+    public Iterator<Map.Entry<HashKey, HashPair>> iterator() {
+        return pairs.entrySet().iterator();
     }
 
     public void put(MonkeyObject key, MonkeyObject value) {

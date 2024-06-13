@@ -1,7 +1,9 @@
 package com.github.lipinskipawel.mlang.vm;
 
+import com.github.lipinskipawel.mlang.evaluator.objects.HashKey;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyArray;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyBoolean;
+import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyHash;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyInteger;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyNull;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyObject;
@@ -14,10 +16,12 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.Map;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static com.github.lipinskipawel.mlang.compiler.Compiler.compiler;
+import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.INTEGER_OBJ;
 import static com.github.lipinskipawel.mlang.lexer.Lexer.lexer;
 import static com.github.lipinskipawel.mlang.vm.VirtualMachine.NULL;
 import static com.github.lipinskipawel.mlang.vm.VirtualMachine.virtualMachine;
@@ -170,6 +174,21 @@ class VirtualMachineTest implements WithAssertions {
         runVirtualMachineTest(vmTestCase);
     }
 
+    private static Stream<Arguments> hashs() {
+        return Stream.of(
+                of(new VmTestCase("{}", Map.<Integer, Integer>of())),
+                of(new VmTestCase("{1: 2, 2: 3}", Map.of(1, 2, 2, 3))),
+                of(new VmTestCase("{1 + 1: 2 * 2, 3 + 3: 4 * 4}", Map.of(2, 4, 6, 16)))
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("hashs")
+    @DisplayName("hash expressions")
+    void hash_expressions(VmTestCase vmTestCase) {
+        runVirtualMachineTest(vmTestCase);
+    }
+
     private void runVirtualMachineTest(VmTestCase vmTestCase) {
         var program = parse(vmTestCase.input());
 
@@ -192,6 +211,7 @@ class VirtualMachineTest implements WithAssertions {
             case String string -> testStringObject(actual, string);
             case Boolean bool -> testBooleanObject(actual, bool);
             case int[] array -> testArrayObject(actual, array);
+            case Map<?, ?> map -> testMapObject(actual, map);
             case MonkeyNull monkeyNull -> assertThat(actual).isEqualTo(monkeyNull);
             default -> throw new IllegalStateException("Unexpected value: " + expected);
         }
@@ -231,10 +251,27 @@ class VirtualMachineTest implements WithAssertions {
             assertThat(it).isInstanceOf(MonkeyArray.class);
 
             var array = (MonkeyArray) actual;
-            assertThat(expected.length).isEqualTo(array.elements().size());
+            assertThat(array.elements().size()).isEqualTo(expected.length);
 
             for (var i = 0; i < expected.length; i++) {
                 testIntegerObject(array.elements().get(i), expected[i]);
+            }
+        });
+    }
+
+    private void testMapObject(MonkeyObject actual, Map<?, ?> expected) {
+        assertThat(actual).satisfies(it -> {
+            assertThat(it).isInstanceOf(MonkeyHash.class);
+
+            var hash = (MonkeyHash) it;
+            assertThat(hash.size()).isEqualTo(expected.size());
+
+            for (var pair : expected.entrySet()) {
+                final var key = (int) pair.getKey();
+                final var hashPair = hash.getHashPair(new HashKey(INTEGER_OBJ, key));
+
+                assertThat(hashPair).isNotNull();
+                testIntegerObject(hashPair.value(), (int) expected.get(key));
             }
         });
     }
