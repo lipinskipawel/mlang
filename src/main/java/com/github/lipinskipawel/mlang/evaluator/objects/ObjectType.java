@@ -11,7 +11,9 @@ public enum ObjectType {
     STRING_OBJ("STRING"),
     BUILTIN_OBJ("BUILTIN_OBJ"),
     ARRAY_OBJ("ARRAY_OBJ"),
-    HASH_OBJ("HASH_OBJ");
+    HASH_OBJ("HASH_OBJ"),
+
+    COMPILED_FUNCTION_OBJ("COMPILED_FUNCTION_OBJ");
 
     private final String name;
 
