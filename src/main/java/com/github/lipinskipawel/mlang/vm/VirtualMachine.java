@@ -3,6 +3,7 @@ package com.github.lipinskipawel.mlang.vm;
 import com.github.lipinskipawel.mlang.code.Instructions;
 import com.github.lipinskipawel.mlang.code.OpCode;
 import com.github.lipinskipawel.mlang.compiler.Bytecode;
+import com.github.lipinskipawel.mlang.evaluator.objects.Hashable;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyArray;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyBoolean;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyHash;
@@ -17,6 +18,8 @@ import java.util.Optional;
 
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_ADD;
 import static com.github.lipinskipawel.mlang.code.OpCode.opCode;
+import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.ARRAY_OBJ;
+import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.HASH_OBJ;
 import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.INTEGER_OBJ;
 import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.STRING_OBJ;
 import static java.nio.ByteOrder.BIG_ENDIAN;
@@ -172,6 +175,15 @@ public final class VirtualMachine {
                         return error;
                     }
                 }
+                case OP_INDEX -> {
+                    final var index = pop();
+                    final var left = pop();
+
+                    final var error = executeIndexExpression(left, index);
+                    if (error.isPresent()) {
+                        return error;
+                    }
+                }
             }
         }
 
@@ -291,6 +303,40 @@ public final class VirtualMachine {
 
         final var value = ((MonkeyInteger) operand).value();
         return push(new MonkeyInteger(-value));
+    }
+
+    private Optional<Object> executeIndexExpression(MonkeyObject left, MonkeyObject index) {
+        if (left.type() == ARRAY_OBJ && index.type() == INTEGER_OBJ) {
+            return executeArrayIndex(left, index);
+        }
+        if (left.type() == HASH_OBJ) {
+            return executeHashIndex(left, index);
+        }
+        return of("index operator not supported [%s]".formatted(left.type()));
+    }
+
+    private Optional<Object> executeArrayIndex(MonkeyObject left, MonkeyObject index) {
+        final var array = (MonkeyArray) left;
+        final var i = ((MonkeyInteger) (index)).value();
+        final var max = array.elements().size() - 1;
+
+        if (i < 0 || i > max) {
+            return push(NULL);
+        }
+        return push(array.elements().get(i));
+    }
+
+    private Optional<Object> executeHashIndex(MonkeyObject left, MonkeyObject index) {
+        final var hash = (MonkeyHash) left;
+        if (index instanceof Hashable hashable) {
+            final var pair = hash.getHashPair(hashable.hashKey());
+            if (pair == null) {
+                return push(NULL);
+            }
+            return push(pair.value());
+        }
+
+        return of("unusable as hash key [%s]".formatted(index));
     }
 
     public MonkeyObject lastPoppedStackElement() {

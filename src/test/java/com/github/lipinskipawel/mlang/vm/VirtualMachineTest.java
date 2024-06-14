@@ -189,6 +189,29 @@ class VirtualMachineTest implements WithAssertions {
         runVirtualMachineTest(vmTestCase);
     }
 
+    private static Stream<Arguments> indexes() {
+        return Stream.of(
+                of(new VmTestCase("{}", Map.<Integer, Integer>of())),
+                of(new VmTestCase("[1, 2, 3][1]", 2)),
+                of(new VmTestCase("[1, 2, 3][0 + 2]", 3)),
+                of(new VmTestCase("[[1, 1, 1]][0][0]", 1)),
+                of(new VmTestCase("[][0]", NULL)),
+                of(new VmTestCase("[1, 2, 3][99]", NULL)),
+                of(new VmTestCase("[1][-1]", NULL)),
+                of(new VmTestCase("{1: 1, 2: 2}[1]", 1)),
+                of(new VmTestCase("{1: 1, 2: 2}[2]", 2)),
+                of(new VmTestCase("{1: 1}[0]", NULL)),
+                of(new VmTestCase("{}[0]", NULL))
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("indexes")
+    @DisplayName("indexes")
+    void index_expressions(VmTestCase vmTestCase) {
+        runVirtualMachineTest(vmTestCase);
+    }
+
     private void runVirtualMachineTest(VmTestCase vmTestCase) {
         var program = parse(vmTestCase.input());
 

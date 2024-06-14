@@ -12,6 +12,7 @@ import com.github.lipinskipawel.mlang.parser.ast.expression.BooleanExpression;
 import com.github.lipinskipawel.mlang.parser.ast.expression.HashLiteral;
 import com.github.lipinskipawel.mlang.parser.ast.expression.Identifier;
 import com.github.lipinskipawel.mlang.parser.ast.expression.IfExpression;
+import com.github.lipinskipawel.mlang.parser.ast.expression.IndexExpression;
 import com.github.lipinskipawel.mlang.parser.ast.expression.InfixExpression;
 import com.github.lipinskipawel.mlang.parser.ast.expression.IntegerLiteral;
 import com.github.lipinskipawel.mlang.parser.ast.expression.PrefixExpression;
@@ -37,6 +38,7 @@ import static com.github.lipinskipawel.mlang.code.OpCode.OP_FALSE;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_GET_GLOBAL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_GREATER_THAN;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_HASH;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_INDEX;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_JUMP;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_JUMP_NOT_TRUTHY;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_MINUS;
@@ -241,6 +243,19 @@ public final class Compiler {
                 }
 
                 emit(OP_HASH, hashLiteral.pairs().size() * 2);
+            }
+            case IndexExpression indexExpression -> {
+                var error = compile(indexExpression.left());
+                if (error.isPresent()) {
+                    return error;
+                }
+
+                error = compile(indexExpression.index());
+                if (error.isPresent()) {
+                    return error;
+                }
+
+                emit(OP_INDEX);
             }
             default -> throw new IllegalStateException("Unexpected value: " + ast);
         }

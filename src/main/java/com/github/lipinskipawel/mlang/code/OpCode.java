@@ -24,7 +24,8 @@ public enum OpCode {
     OP_GET_GLOBAL((byte) 17),
     OP_SET_GLOBAL((byte) 18),
     OP_ARRAY((byte) 19),
-    OP_HASH((byte) 20);
+    OP_HASH((byte) 20),
+    OP_INDEX((byte) 21);
 
     final byte opCode;
 
@@ -55,7 +56,8 @@ public enum OpCode {
             entry(OP_GET_GLOBAL, new Definition("OpGetGlobal", new int[]{2})),
             entry(OP_SET_GLOBAL, new Definition("OpSetGlobal", new int[]{2})),
             entry(OP_ARRAY, new Definition("OpArray", new int[]{2})),
-            entry(OP_HASH, new Definition("OpHash", new int[]{2})) // num key + val
+            entry(OP_HASH, new Definition("OpHash", new int[]{2})), // num key + val
+            entry(OP_INDEX, new Definition("OpIndex", new int[0]))
     );
 
     public Definition definition() {
@@ -84,6 +86,7 @@ public enum OpCode {
             case 18 -> OP_SET_GLOBAL;
             case 19 -> OP_ARRAY;
             case 20 -> OP_HASH;
+            case 21 -> OP_INDEX;
             default -> throw new IllegalArgumentException("No opcode defined for [%s]".formatted(oneByte));
         };
     }
@@ -110,6 +113,7 @@ public enum OpCode {
             case 18 -> DEFINITIONS.get(OP_SET_GLOBAL);
             case 19 -> DEFINITIONS.get(OP_ARRAY);
             case 20 -> DEFINITIONS.get(OP_HASH);
+            case 21 -> DEFINITIONS.get(OP_INDEX);
             default -> throw new IllegalStateException("Unexpected value: " + op);
         };
     }

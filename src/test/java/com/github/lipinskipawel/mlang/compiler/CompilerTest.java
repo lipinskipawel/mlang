@@ -28,6 +28,7 @@ import static com.github.lipinskipawel.mlang.code.OpCode.OP_FALSE;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_GET_GLOBAL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_GREATER_THAN;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_HASH;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_INDEX;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_JUMP;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_JUMP_NOT_TRUTHY;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_MINUS;
@@ -344,6 +345,39 @@ class CompilerTest implements WithAssertions {
     @MethodSource("hashs")
     @DisplayName("hash expressions")
     void hash_expressions(CompilerTestCase compilerTestCase) {
+        runCompiler(compilerTestCase);
+    }
+
+    private static Stream<Arguments> indexes() {
+        return Stream.of(
+                of(new CompilerTestCase("[1, 2, 3][1 + 1]", List.of(1, 2, 3, 1, 1), List.of(
+                        instructions(make(OP_CONSTANT, new int[]{0})),
+                        instructions(make(OP_CONSTANT, new int[]{1})),
+                        instructions(make(OP_CONSTANT, new int[]{2})),
+                        instructions(make(OP_ARRAY, new int[]{3})),
+                        instructions(make(OP_CONSTANT, new int[]{3})),
+                        instructions(make(OP_CONSTANT, new int[]{4})),
+                        instructions(make(OP_ADD, new int[0])),
+                        instructions(make(OP_INDEX, new int[0])),
+                        instructions(make(OP_POP, new int[0]))
+                ))),
+                of(new CompilerTestCase("{1: 2}[2 - 1]", List.of(1, 2, 2, 1), List.of(
+                        instructions(make(OP_CONSTANT, new int[]{0})),
+                        instructions(make(OP_CONSTANT, new int[]{1})),
+                        instructions(make(OP_HASH, new int[]{2})),
+                        instructions(make(OP_CONSTANT, new int[]{2})),
+                        instructions(make(OP_CONSTANT, new int[]{3})),
+                        instructions(make(OP_SUB, new int[0])),
+                        instructions(make(OP_INDEX, new int[0])),
+                        instructions(make(OP_POP, new int[0]))
+                )))
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("indexes")
+    @DisplayName("indexes")
+    void index_expression(CompilerTestCase compilerTestCase) {
         runCompiler(compilerTestCase);
     }
 
