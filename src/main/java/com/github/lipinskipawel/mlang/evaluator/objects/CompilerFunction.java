@@ -11,6 +11,10 @@ public final class CompilerFunction extends MonkeyObject {
         this.instructions = instructions;
     }
 
+    public Instructions instructions() {
+        return instructions;
+    }
+
     @Override
     public ObjectType type() {
         return COMPILED_FUNCTION_OBJ;

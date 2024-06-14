@@ -1,6 +1,7 @@
 package com.github.lipinskipawel.mlang.compiler;
 
 import com.github.lipinskipawel.mlang.code.Instructions;
+import com.github.lipinskipawel.mlang.evaluator.objects.CompilerFunction;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyInteger;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyObject;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyString;
@@ -36,6 +37,7 @@ import static com.github.lipinskipawel.mlang.code.OpCode.OP_MUL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_NOT_EQUAL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_NULL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_POP;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_RETURN_VALUE;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_SET_GLOBAL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_SUB;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_TRUE;
@@ -381,6 +383,31 @@ class CompilerTest implements WithAssertions {
         runCompiler(compilerTestCase);
     }
 
+    private static Stream<Arguments> functions() {
+        return Stream.of(
+                of(new CompilerTestCase("fn () { return 5 + 10 }", List.of(
+                        5,
+                        10,
+                        List.of(
+                                instructions(make(OP_CONSTANT, new int[]{0})),
+                                instructions(make(OP_CONSTANT, new int[]{1})),
+                                instructions(make(OP_ADD, new int[0])),
+                                instructions(make(OP_RETURN_VALUE, new int[0]))
+                        )
+                ), List.of(
+                        instructions(make(OP_CONSTANT, new int[]{2})),
+                        instructions(make(OP_POP, new int[0]))
+                )))
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("functions")
+    @DisplayName("functions")
+    void functions(CompilerTestCase compilerTestCase) {
+        runCompiler(compilerTestCase);
+    }
+
     private void runCompiler(CompilerTestCase compilerTestCase) {
         var program = parse(compilerTestCase.input());
 
@@ -421,6 +448,7 @@ class CompilerTest implements WithAssertions {
             switch (constant) {
                 case Integer integer -> testIntegerObject(actual.get(i), integer);
                 case String string -> testStringObject(actual.get(i), string);
+                case List<?> list -> testListConstant(actual.get(i), list);
                 default -> throw new IllegalStateException("Unexpected value: " + constant);
             }
         }
@@ -444,6 +472,16 @@ class CompilerTest implements WithAssertions {
                     assertThat(str.value()).isEqualTo(expected);
                 }
         );
+    }
+
+    @SuppressWarnings("unchecked")
+    private void testListConstant(MonkeyObject actual, List<?> expected) {
+        assertThat(actual).satisfies(it -> {
+            assertThat(it).isInstanceOf(CompilerFunction.class);
+
+            var compiledFunction = (CompilerFunction) it;
+            testInstructions((List<Instructions>) expected, compiledFunction.instructions());
+        });
     }
 
     private Program parse(String input) {
