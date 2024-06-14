@@ -27,7 +27,6 @@ import java.util.Optional;
 
 import static com.github.lipinskipawel.mlang.code.Instructions.instructions;
 import static com.github.lipinskipawel.mlang.code.Instructions.make;
-import static com.github.lipinskipawel.mlang.code.Instructions.noInstructions;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_ADD;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_ARRAY;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_BANG;
@@ -57,16 +56,17 @@ import static java.util.Optional.empty;
 import static java.util.Optional.of;
 
 public final class Compiler {
-    private final Instructions instructions;
     private final List<MonkeyObject> constants;
     private final SymbolTable symbolTable;
-    private EmittedInstructions lastInstruction;
-    private EmittedInstructions previousInstruction;
+    final List<CompilationScope> compilationScopes;
+    int scopeIndex;
 
-    private Compiler(Instructions instructions, List<MonkeyObject> constants, SymbolTable symbolTable) {
-        this.instructions = requireNonNull(instructions);
+    private Compiler(List<MonkeyObject> constants, SymbolTable symbolTable) {
         this.constants = requireNonNull(constants);
         this.symbolTable = requireNonNull(symbolTable);
+        this.compilationScopes = new ArrayList<>();
+        this.compilationScopes.add(new CompilationScope());
+        this.scopeIndex = 0;
     }
 
     public static Compiler compiler() {
@@ -74,7 +74,7 @@ public final class Compiler {
     }
 
     public static Compiler compiler(List<MonkeyObject> constants, SymbolTable symbolTable) {
-        return new Compiler(noInstructions(), constants, symbolTable);
+        return new Compiler(constants, symbolTable);
     }
 
     public Optional<Object> compile(Node ast) {
@@ -191,7 +191,7 @@ public final class Compiler {
 
                 final var jumpPos = emit(OP_JUMP, 3333);
 
-                final var afterConsequencePos = instructions.length();
+                final var afterConsequencePos = currentInstructions().length();
                 changeOperand(jumpNotTruthyPos, afterConsequencePos);
 
                 if (ifExpression.alternative() == null) {
@@ -207,7 +207,7 @@ public final class Compiler {
                     }
                 }
 
-                final var afterAlternativePos = instructions.length();
+                final var afterAlternativePos = currentInstructions().length();
                 changeOperand(jumpPos, afterAlternativePos);
             }
             case BlockStatement blockStatement -> {
@@ -262,24 +262,53 @@ public final class Compiler {
         return empty();
     }
 
+    private Instructions currentInstructions() {
+        return compilationScopes.get(scopeIndex).instructions();
+    }
+
     private boolean lastInstructionIsPop() {
-        return lastInstruction.opCode() == OP_POP;
+        return compilationScopes.get(scopeIndex).lastInstruction().opCode() == OP_POP;
     }
 
     private void removeLastPop() {
-        instructions.remove(lastInstruction.position());
-        lastInstruction = previousInstruction;
+        final var onTop = compilationScopes.get(scopeIndex);
+
+        final var last = onTop.lastInstruction();
+        final var previous = onTop.previousInstruction();
+
+        final var newInstructions = instructions(currentInstructions().slice(0, last.position()));
+
+        putCompilationScopeAt(
+                onTop.withInstructions(newInstructions).withLastInstruction(previous),
+                scopeIndex
+        );
     }
 
     private void changeOperand(int opPosition, int... operand) {
-        final var opCode = opCode(instructions.instructionAt(opPosition));
+        final var opCode = opCode(currentInstructions().instructionAt(opPosition));
         final var newInstruction = make(opCode, operand);
 
-        instructions.replaceInstructions(opPosition, newInstruction);
+        currentInstructions().replaceInstructions(opPosition, newInstruction);
+    }
+
+    void enterScope() {
+        final var scope = new CompilationScope();
+
+        compilationScopes.add(scope);
+        scopeIndex++;
+    }
+
+    Instructions leaveScope() {
+        final var instructions = currentInstructions();
+
+        compilationScopes.removeLast();
+        scopeIndex--;
+
+        return instructions;
     }
 
     // here we can write to file or to collections
-    private int emit(OpCode op, int... operands) {
+    int emit(OpCode op, int... operands) {
         final var instruction = make(op, operands);
         final var position = addInstructions(instruction);
 
@@ -289,14 +318,25 @@ public final class Compiler {
     }
 
     private int addInstructions(byte[] instruction) {
-        final var newPositionInstruction = instructions.bytes().length;
-        instructions.append(instructions(instruction));
+        final var newPositionInstruction = currentInstructions().length();
+        currentInstructions().append(instructions(instruction));
+
+        final var newCompilationScope = compilationScopes.get(scopeIndex).withInstructions(currentInstructions());
+        putCompilationScopeAt(newCompilationScope, scopeIndex);
         return newPositionInstruction;
     }
 
     private void setLastInstruction(OpCode op, int pos) {
-        previousInstruction = lastInstruction;
-        lastInstruction = new EmittedInstructions(op, pos);
+        final var previous = compilationScopes.get(scopeIndex).lastInstruction();
+        final var last = new EmittedInstructions(op, pos);
+
+        putCompilationScopeAt(compilationScopes.get(scopeIndex).withPreviousInstruction(previous), scopeIndex);
+        putCompilationScopeAt(compilationScopes.get(scopeIndex).withLastInstruction(last), scopeIndex);
+    }
+
+    private void putCompilationScopeAt(CompilationScope compilationScope, int position) {
+        compilationScopes.add(position, compilationScope);
+        compilationScopes.remove(++position);
     }
 
     private int addConstant(MonkeyObject constant) {
@@ -305,6 +345,6 @@ public final class Compiler {
     }
 
     public Bytecode bytecode() {
-        return new Bytecode(instructions, constants);
+        return new Bytecode(currentInstructions(), constants);
     }
 }

@@ -9,6 +9,7 @@ import com.github.lipinskipawel.mlang.parser.Parser;
 import com.github.lipinskipawel.mlang.parser.ast.Program;
 import org.assertj.core.api.WithAssertions;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -406,6 +407,32 @@ class CompilerTest implements WithAssertions {
     @DisplayName("functions")
     void functions(CompilerTestCase compilerTestCase) {
         runCompiler(compilerTestCase);
+    }
+
+    @Test
+    void compiler_scopes() {
+        var compiler = compiler();
+        assertThat(compiler.scopeIndex).isEqualTo(0);
+
+        compiler.emit(OP_MUL);
+        compiler.enterScope();
+        assertThat(compiler.scopeIndex).isEqualTo(1);
+
+        compiler.emit(OP_SUB);
+        assertThat(compiler.compilationScopes.get(compiler.scopeIndex).instructions().length()).isEqualTo(1);
+        var last = compiler.compilationScopes.get(compiler.scopeIndex).lastInstruction();
+        assertThat(last.opCode()).isEqualTo(OP_SUB);
+
+        compiler.leaveScope();
+        assertThat(compiler.scopeIndex).isEqualTo(0);
+
+        compiler.emit(OP_ADD);
+        assertThat(compiler.compilationScopes.get(compiler.scopeIndex).instructions().length()).isEqualTo(2);
+        last = compiler.compilationScopes.get(compiler.scopeIndex).lastInstruction();
+        assertThat(last.opCode()).isEqualTo(OP_ADD);
+
+        var previous = compiler.compilationScopes.get(compiler.scopeIndex).previousInstruction();
+        assertThat(previous.opCode()).isEqualTo(OP_MUL);
     }
 
     private void runCompiler(CompilerTestCase compilerTestCase) {
