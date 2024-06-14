@@ -25,7 +25,10 @@ public enum OpCode {
     OP_SET_GLOBAL((byte) 18),
     OP_ARRAY((byte) 19),
     OP_HASH((byte) 20),
-    OP_INDEX((byte) 21);
+    OP_INDEX((byte) 21),
+    OP_CALL((byte) 22),
+    OP_RETURN_VALUE((byte) 23),
+    OP_RETURN((byte) 24);
 
     final byte opCode;
 
@@ -57,7 +60,10 @@ public enum OpCode {
             entry(OP_SET_GLOBAL, new Definition("OpSetGlobal", new int[]{2})),
             entry(OP_ARRAY, new Definition("OpArray", new int[]{2})),
             entry(OP_HASH, new Definition("OpHash", new int[]{2})), // num key + val
-            entry(OP_INDEX, new Definition("OpIndex", new int[0]))
+            entry(OP_INDEX, new Definition("OpIndex", new int[0])),
+            entry(OP_CALL, new Definition("OpCall", new int[0])),
+            entry(OP_RETURN_VALUE, new Definition("OpReturnValue", new int[0])),
+            entry(OP_RETURN, new Definition("OpReturn", new int[0]))
     );
 
     public Definition definition() {
@@ -87,6 +93,9 @@ public enum OpCode {
             case 19 -> OP_ARRAY;
             case 20 -> OP_HASH;
             case 21 -> OP_INDEX;
+            case 22 -> OP_CALL;
+            case 23 -> OP_RETURN_VALUE;
+            case 24 -> OP_RETURN;
             default -> throw new IllegalArgumentException("No opcode defined for [%s]".formatted(oneByte));
         };
     }
@@ -114,6 +123,9 @@ public enum OpCode {
             case 19 -> DEFINITIONS.get(OP_ARRAY);
             case 20 -> DEFINITIONS.get(OP_HASH);
             case 21 -> DEFINITIONS.get(OP_INDEX);
+            case 22 -> DEFINITIONS.get(OP_CALL);
+            case 23 -> DEFINITIONS.get(OP_RETURN_VALUE);
+            case 24 -> DEFINITIONS.get(OP_RETURN);
             default -> throw new IllegalStateException("Unexpected value: " + op);
         };
     }
