@@ -2,6 +2,7 @@ package com.github.lipinskipawel.mlang.compiler;
 
 import com.github.lipinskipawel.mlang.code.Instructions;
 import com.github.lipinskipawel.mlang.code.OpCode;
+import com.github.lipinskipawel.mlang.evaluator.objects.CompilerFunction;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyInteger;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyObject;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyString;
@@ -9,6 +10,7 @@ import com.github.lipinskipawel.mlang.parser.ast.Node;
 import com.github.lipinskipawel.mlang.parser.ast.Program;
 import com.github.lipinskipawel.mlang.parser.ast.expression.ArrayLiteral;
 import com.github.lipinskipawel.mlang.parser.ast.expression.BooleanExpression;
+import com.github.lipinskipawel.mlang.parser.ast.expression.FunctionLiteral;
 import com.github.lipinskipawel.mlang.parser.ast.expression.HashLiteral;
 import com.github.lipinskipawel.mlang.parser.ast.expression.Identifier;
 import com.github.lipinskipawel.mlang.parser.ast.expression.IfExpression;
@@ -20,6 +22,7 @@ import com.github.lipinskipawel.mlang.parser.ast.expression.StringLiteral;
 import com.github.lipinskipawel.mlang.parser.ast.statement.BlockStatement;
 import com.github.lipinskipawel.mlang.parser.ast.statement.ExpressionStatement;
 import com.github.lipinskipawel.mlang.parser.ast.statement.LetStatement;
+import com.github.lipinskipawel.mlang.parser.ast.statement.ReturnStatement;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -45,6 +48,8 @@ import static com.github.lipinskipawel.mlang.code.OpCode.OP_MUL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_NOT_EQUAL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_NULL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_POP;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_RETURN;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_RETURN_VALUE;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_SET_GLOBAL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_SUB;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_TRUE;
@@ -185,7 +190,7 @@ public final class Compiler {
                     return error;
                 }
 
-                if (lastInstructionIsPop()) {
+                if (lastInstructionIs(OP_POP)) {
                     removeLastPop();
                 }
 
@@ -202,7 +207,7 @@ public final class Compiler {
                         return error;
                     }
 
-                    if (lastInstructionIsPop()) {
+                    if (lastInstructionIs(OP_POP)) {
                         removeLastPop();
                     }
                 }
@@ -257,6 +262,32 @@ public final class Compiler {
 
                 emit(OP_INDEX);
             }
+            case FunctionLiteral functionLiteral -> {
+                enterScope();
+
+                final var error = compile(functionLiteral.body());
+                if (error.isPresent()) {
+                    return error;
+                }
+
+                if (lastInstructionIs(OP_POP)) {
+                    replaceLastPopWithReturn();
+                }
+                if (!lastInstructionIs(OP_RETURN_VALUE)) {
+                    emit(OP_RETURN);
+                }
+
+                final var instructions = leaveScope();
+                final var compilerFunction = new CompilerFunction(instructions);
+                emit(OP_CONSTANT, addConstant(compilerFunction));
+            }
+            case ReturnStatement returnStatement -> {
+                final var error = compile(returnStatement.returnValue());
+                if (error.isPresent()) {
+                    return error;
+                }
+                emit(OP_RETURN_VALUE);
+            }
             default -> throw new IllegalStateException("Unexpected value: " + ast);
         }
         return empty();
@@ -266,8 +297,19 @@ public final class Compiler {
         return compilationScopes.get(scopeIndex).instructions();
     }
 
-    private boolean lastInstructionIsPop() {
-        return compilationScopes.get(scopeIndex).lastInstruction().opCode() == OP_POP;
+    private boolean lastInstructionIs(OpCode opCode) {
+        if (currentInstructions().length() == 0) {
+            return false;
+        }
+        return compilationScopes.get(scopeIndex).lastInstruction().opCode() == opCode;
+    }
+
+    private void replaceLastPopWithReturn() {
+        final var lastPosition = compilationScopes.get(scopeIndex).lastInstruction().position();
+        currentInstructions().replaceInstructions(lastPosition, make(OP_RETURN_VALUE, new int[0]));
+
+        final var onTop = compilationScopes.get(scopeIndex);
+        putCompilationScopeAt(onTop.withLastInstruction(onTop.lastInstruction().withOpCode(OP_RETURN_VALUE)), scopeIndex);
     }
 
     private void removeLastPop() {
@@ -330,8 +372,10 @@ public final class Compiler {
         final var previous = compilationScopes.get(scopeIndex).lastInstruction();
         final var last = new EmittedInstructions(op, pos);
 
-        putCompilationScopeAt(compilationScopes.get(scopeIndex).withPreviousInstruction(previous), scopeIndex);
-        putCompilationScopeAt(compilationScopes.get(scopeIndex).withLastInstruction(last), scopeIndex);
+        putCompilationScopeAt(compilationScopes.get(scopeIndex)
+                .withPreviousInstruction(previous)
+                .withLastInstruction(last), scopeIndex
+        );
     }
 
     private void putCompilationScopeAt(CompilationScope compilationScope, int position) {

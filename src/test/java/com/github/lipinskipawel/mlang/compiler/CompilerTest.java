@@ -38,6 +38,7 @@ import static com.github.lipinskipawel.mlang.code.OpCode.OP_MUL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_NOT_EQUAL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_NULL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_POP;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_RETURN;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_RETURN_VALUE;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_SET_GLOBAL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_SUB;
@@ -397,6 +398,41 @@ class CompilerTest implements WithAssertions {
                         )
                 ), List.of(
                         instructions(make(OP_CONSTANT, new int[]{2})),
+                        instructions(make(OP_POP, new int[0]))
+                ))),
+                of(new CompilerTestCase("fn () { 5 + 10 }", List.of(
+                        5,
+                        10,
+                        List.of(
+                                instructions(make(OP_CONSTANT, new int[]{0})),
+                                instructions(make(OP_CONSTANT, new int[]{1})),
+                                instructions(make(OP_ADD, new int[0])),
+                                instructions(make(OP_RETURN_VALUE, new int[0]))
+                        )
+                ), List.of(
+                        instructions(make(OP_CONSTANT, new int[]{2})),
+                        instructions(make(OP_POP, new int[0]))
+                ))),
+                of(new CompilerTestCase("fn () { 1; 2 }", List.of(
+                        1,
+                        2,
+                        List.of(
+                                instructions(make(OP_CONSTANT, new int[]{0})),
+                                instructions(make(OP_POP, new int[0])),
+                                instructions(make(OP_CONSTANT, new int[]{1})),
+                                instructions(make(OP_RETURN_VALUE, new int[0]))
+                        )
+                )
+                        , List.of(
+                        instructions(make(OP_CONSTANT, new int[]{2})),
+                        instructions(make(OP_POP, new int[0]))
+                ))),
+                of(new CompilerTestCase("fn () { }", List.of(
+                        List.of(
+                                instructions(make(OP_RETURN, new int[0]))
+                        )
+                ), List.of(
+                        instructions(make(OP_CONSTANT, new int[]{0})),
                         instructions(make(OP_POP, new int[0]))
                 )))
         );
