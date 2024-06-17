@@ -1,8 +1,8 @@
 package com.github.lipinskipawel.mlang.vm;
 
-import com.github.lipinskipawel.mlang.code.Instructions;
 import com.github.lipinskipawel.mlang.code.OpCode;
 import com.github.lipinskipawel.mlang.compiler.Bytecode;
+import com.github.lipinskipawel.mlang.evaluator.objects.CompilerFunction;
 import com.github.lipinskipawel.mlang.evaluator.objects.Hashable;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyArray;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyBoolean;
@@ -22,6 +22,7 @@ import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.ARRAY_
 import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.HASH_OBJ;
 import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.INTEGER_OBJ;
 import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.STRING_OBJ;
+import static com.github.lipinskipawel.mlang.vm.Frame.frame;
 import static java.nio.ByteOrder.BIG_ENDIAN;
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
@@ -31,25 +32,32 @@ public final class VirtualMachine {
     public static final int GLOBAL_SIZE = 65536;
     static final MonkeyNull NULL = new MonkeyNull();
     private static final int STACK_SIZE = 2048;
+    private static final int MAX_FRAMES = 1024;
     private static final MonkeyBoolean TRUE = new MonkeyBoolean(true);
     private static final MonkeyBoolean FALSE = new MonkeyBoolean(false);
 
     private final List<MonkeyObject> constants;
-    private final Instructions instructions;
     private final MonkeyObject[] stack; // we can define limit on the queue but can't in Stack
     private int stackPointer = 0;
     private final MonkeyObject[] globals;
+    private final Frame[] frames;
+    private int frameIndex;
 
     private VirtualMachine(
-            List<MonkeyObject> constants,
-            Instructions instructions,
+            Bytecode bytecode,
             MonkeyObject[] stack,
             MonkeyObject[] globals
     ) {
-        this.constants = constants;
-        this.instructions = instructions;
+        this.constants = bytecode.constants();
         this.stack = stack;
         this.globals = globals;
+
+        final var mainFn = new CompilerFunction(bytecode.instructions());
+        final var mainFrame = frame(mainFn);
+
+        this.frames = new Frame[MAX_FRAMES];
+        this.frames[0] = mainFrame;
+        this.frameIndex = 1;
     }
 
     public static VirtualMachine virtualMachine(Bytecode bytecode) {
@@ -57,18 +65,38 @@ public final class VirtualMachine {
     }
 
     public static VirtualMachine virtualMachine(Bytecode bytecode, MonkeyObject[] globals) {
-        return new VirtualMachine(bytecode.constants(), bytecode.instructions(), new MonkeyObject[STACK_SIZE], globals);
+        return new VirtualMachine(bytecode, new MonkeyObject[STACK_SIZE], globals);
+    }
+
+    private Frame currentFrame() {
+        return frames[frameIndex - 1];
+    }
+
+    private void pushFrame(Frame frame) {
+        frames[frameIndex] = frame;
+        frameIndex++;
+    }
+
+    private Frame popFrame() {
+        frameIndex--;
+        return frames[frameIndex];
     }
 
     // fetch-decode-execute cycle
     public Optional<Object> run() {
-        for (var instructionPointer = 0; instructionPointer < instructions.bytes().length; instructionPointer++) {
-            // we are in the hot path, this static `opCode` function probably should be replaced by raw byte
+        while (currentFrame().instructionPointer() < currentFrame().instructions().length() - 1) {
+            // we are in the hot path
+            currentFrame().incrementInstructionPointer();
+
+            final var instructionPointer = currentFrame().instructionPointer();
+            final var instructions = currentFrame().instructions();
+            // this static `opCode` function probably should be replaced by raw byte
             final var op = opCode(instructions.bytes()[instructionPointer]);
+
             switch (op) {
                 case OP_CONSTANT -> {
                     final var constIndex = readShort(instructions.slice(instructionPointer + 1, instructions.bytes().length));
-                    instructionPointer += 2;
+                    currentFrame().incrementInstructionPointer(2);
                     final var error = push(constants.get(constIndex));
                     if (error.isPresent()) {
                         return error;
@@ -113,15 +141,15 @@ public final class VirtualMachine {
                 }
                 case OP_JUMP -> {
                     final var pos = readShort(instructions.slice(instructionPointer + 1, instructions.bytes().length));
-                    instructionPointer = pos - 1;
+                    currentFrame().setInstructionPointer(pos - 1);
                 }
                 case OP_JUMP_NOT_TRUTHY -> {
                     final var pos = readShort(instructions.slice(instructionPointer + 1, instructions.bytes().length));
-                    instructionPointer += 2;
+                    currentFrame().incrementInstructionPointer(2);
 
                     final var condition = pop();
                     if (!isTruthy(condition)) {
-                        instructionPointer = pos - 1;
+                        currentFrame().setInstructionPointer(pos - 1);
                     }
                 }
                 case OP_NULL -> {
@@ -132,13 +160,13 @@ public final class VirtualMachine {
                 }
                 case OP_SET_GLOBAL -> {
                     final var globalIndex = readShort(instructions.slice(instructionPointer + 1, instructions.bytes().length));
-                    instructionPointer += 2;
+                    currentFrame().incrementInstructionPointer(2);
 
                     globals[globalIndex] = pop();
                 }
                 case OP_GET_GLOBAL -> {
                     final var globalIndex = readShort(instructions.slice(instructionPointer + 1, instructions.bytes().length));
-                    instructionPointer += 2;
+                    currentFrame().incrementInstructionPointer(2);
 
                     final var error = push(globals[globalIndex]);
                     if (error.isPresent()) {
@@ -147,7 +175,7 @@ public final class VirtualMachine {
                 }
                 case OP_ARRAY -> {
                     final var arrayLength = readShort(instructions.slice(instructionPointer + 1, instructions.bytes().length));
-                    instructionPointer += 2;
+                    currentFrame().incrementInstructionPointer(2);
 
                     final var error = push(new MonkeyArray(iterate(1, i -> i <= arrayLength, i -> i + 1)
                             .map(it -> pop())
@@ -159,7 +187,7 @@ public final class VirtualMachine {
                 }
                 case OP_HASH -> {
                     final var hashLength = readShort(instructions.slice(instructionPointer + 1, instructions.bytes().length));
-                    instructionPointer += 2;
+                    currentFrame().incrementInstructionPointer(2);
 
                     final var entries = iterate(1, i -> i <= hashLength, i -> i + 1)
                             .map(it -> pop())
