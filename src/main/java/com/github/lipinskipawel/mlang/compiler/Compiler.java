@@ -10,6 +10,7 @@ import com.github.lipinskipawel.mlang.parser.ast.Node;
 import com.github.lipinskipawel.mlang.parser.ast.Program;
 import com.github.lipinskipawel.mlang.parser.ast.expression.ArrayLiteral;
 import com.github.lipinskipawel.mlang.parser.ast.expression.BooleanExpression;
+import com.github.lipinskipawel.mlang.parser.ast.expression.CallExpression;
 import com.github.lipinskipawel.mlang.parser.ast.expression.FunctionLiteral;
 import com.github.lipinskipawel.mlang.parser.ast.expression.HashLiteral;
 import com.github.lipinskipawel.mlang.parser.ast.expression.Identifier;
@@ -33,6 +34,7 @@ import static com.github.lipinskipawel.mlang.code.Instructions.make;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_ADD;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_ARRAY;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_BANG;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_CALL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_CONSTANT;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_DIV;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_EQUAL;
@@ -287,6 +289,13 @@ public final class Compiler {
                     return error;
                 }
                 emit(OP_RETURN_VALUE);
+            }
+            case CallExpression callExpression -> {
+                final var error = compile(callExpression.function());
+                if (error.isPresent()) {
+                    return error;
+                }
+                emit(OP_CALL);
             }
             default -> throw new IllegalStateException("Unexpected value: " + ast);
         }

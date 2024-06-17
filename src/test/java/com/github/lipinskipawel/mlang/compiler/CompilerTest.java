@@ -23,6 +23,7 @@ import static com.github.lipinskipawel.mlang.code.Instructions.merge;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_ADD;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_ARRAY;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_BANG;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_CALL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_CONSTANT;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_DIV;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_EQUAL;
@@ -469,6 +470,45 @@ class CompilerTest implements WithAssertions {
 
         var previous = compiler.compilationScopes.get(compiler.scopeIndex).previousInstruction();
         assertThat(previous.opCode()).isEqualTo(OP_MUL);
+    }
+
+    private static Stream<Arguments> functionCalls() {
+        return Stream.of(
+                of(new CompilerTestCase("fn () { 24 }()", List.of(
+                        24,
+                        List.of(
+                                instructions(make(OP_CONSTANT, new int[]{0})),
+                                instructions(make(OP_RETURN_VALUE, new int[0]))
+                        )
+                ), List.of(
+                        instructions(make(OP_CONSTANT, new int[]{1})),
+                        instructions(make(OP_CALL, new int[0])),
+                        instructions(make(OP_POP, new int[0]))
+                ))),
+                of(new CompilerTestCase("""
+                        let noArgs = fn() { 24 };
+                        noArgs();
+                        """, List.of(
+                        24,
+                        List.of(
+                                instructions(make(OP_CONSTANT, new int[]{0})),
+                                instructions(make(OP_RETURN_VALUE, new int[0]))
+                        )
+                ), List.of(
+                        instructions(make(OP_CONSTANT, new int[]{1})),
+                        instructions(make(OP_SET_GLOBAL, new int[]{0})),
+                        instructions(make(OP_GET_GLOBAL, new int[]{0})),
+                        instructions(make(OP_CALL, new int[0])),
+                        instructions(make(OP_POP, new int[0]))
+                )))
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("functionCalls")
+    @DisplayName("function calls")
+    void function_calls(CompilerTestCase compilerTestCase) {
+        runCompiler(compilerTestCase);
     }
 
     private void runCompiler(CompilerTestCase compilerTestCase) {
