@@ -212,6 +212,41 @@ class VirtualMachineTest implements WithAssertions {
         runVirtualMachineTest(vmTestCase);
     }
 
+    private static Stream<Arguments> callFunctionsWithoutArguments() {
+        return Stream.of(
+                of(new VmTestCase("""
+                        let fivePlusTen = fn () { 5 + 10; };
+                        fivePlusTen();
+                        """, 15)),
+                of(new VmTestCase("""
+                        let one = fn() { 1; };
+                        let two = fn() { 2; };
+                        one() + two()
+                        """, 3)),
+                of(new VmTestCase("""
+                        let a = fn() { 1 };
+                        let b = fn() { a() + 1 };
+                        let c = fn() { b() + 1 };
+                        c();
+                        """, 3)),
+                of(new VmTestCase("""
+                        let earlyExit = fn() { return 99; 100; };
+                        earlyExit();
+                        """, 99)),
+                of(new VmTestCase("""
+                        let earlyExit = fn() { return 99; return 100; };
+                        earlyExit();
+                        """, 99))
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("callFunctionsWithoutArguments")
+    @DisplayName("call functions without arguments")
+    void call_functions_without_arguments(VmTestCase vmTestCase) {
+        runVirtualMachineTest(vmTestCase);
+    }
+
     private void runVirtualMachineTest(VmTestCase vmTestCase) {
         var program = parse(vmTestCase.input());
 

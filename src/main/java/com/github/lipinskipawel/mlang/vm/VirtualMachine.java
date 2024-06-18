@@ -212,6 +212,27 @@ public final class VirtualMachine {
                         return error;
                     }
                 }
+                case OP_CALL -> {
+                    CompilerFunction fn;
+                    try {
+                        fn = (CompilerFunction) stack[stackPointer - 1];
+                    } catch (Exception e) {
+                        return of("calling non-function");
+                    }
+                    final var newFrame = frame(fn);
+                    pushFrame(newFrame);
+                }
+                case OP_RETURN_VALUE -> {
+                    final var returnValue = pop();
+
+                    popFrame();
+                    pop();
+
+                    final var error = push(returnValue);
+                    if (error.isPresent()) {
+                        return error;
+                    }
+                }
             }
         }
 
