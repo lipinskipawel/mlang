@@ -233,6 +233,15 @@ public final class VirtualMachine {
                         return error;
                     }
                 }
+                case OP_RETURN -> {
+                    popFrame();
+                    pop();
+
+                    final var error = push(NULL);
+                    if (error.isPresent()) {
+                        return error;
+                    }
+                }
             }
         }
 

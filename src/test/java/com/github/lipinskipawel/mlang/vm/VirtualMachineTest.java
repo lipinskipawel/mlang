@@ -247,6 +247,28 @@ class VirtualMachineTest implements WithAssertions {
         runVirtualMachineTest(vmTestCase);
     }
 
+    private static Stream<Arguments> callFunctionsWithoutArgumentsAndWithoutReturnValue() {
+        return Stream.of(
+                of(new VmTestCase("""
+                        let noReturn = fn() { };
+                        noReturn();
+                        """, NULL)),
+                of(new VmTestCase("""
+                        let noReturn = fn() { };
+                        let noReturnTwo = fn() { noReturn(); };
+                        noReturn();
+                        noReturnTwo();
+                        """, NULL))
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("callFunctionsWithoutArgumentsAndWithoutReturnValue")
+    @DisplayName("call functions without arguments and without return value")
+    void call_functions_without_arguments_and_without_return_value(VmTestCase vmTestCase) {
+        runVirtualMachineTest(vmTestCase);
+    }
+
     private void runVirtualMachineTest(VmTestCase vmTestCase) {
         var program = parse(vmTestCase.input());
 
