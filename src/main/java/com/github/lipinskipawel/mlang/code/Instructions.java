@@ -37,6 +37,7 @@ public final class Instructions {
         for (var i = 0; i < operands.length; i++) {
             var width = definition.operandWidths()[i];
             switch (width) {
+                case 1 -> instruction.put((byte) operands[i]);
                 case 2 -> instruction.putShort((short) operands[i]);
             }
         }
@@ -57,13 +58,21 @@ public final class Instructions {
             final var wrap = ByteBuffer.wrap(instructions.bytes()).order(BIG_ENDIAN);
             var width = definition.operandWidths()[i];
             switch (width) {
+                case 1: {
+                    wrap.position(offset);
+                    operands.putShort((short) 0);
+                    operands.put((byte) 0);
+                    operands.put(wrap.get());
+                    break;
+                }
                 case 2: {
                     wrap.position(offset);
                     operands.putShort((short) 0);
                     operands.putShort(wrap.getShort());
+                    break;
                 }
-                offset += width;
             }
+            offset += width;
         }
 
         return new Operands(toIntArray(operands.array()), offset);
