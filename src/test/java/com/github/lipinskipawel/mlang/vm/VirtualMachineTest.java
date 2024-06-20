@@ -12,6 +12,7 @@ import com.github.lipinskipawel.mlang.parser.Parser;
 import com.github.lipinskipawel.mlang.parser.ast.Program;
 import org.assertj.core.api.WithAssertions;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -267,6 +268,16 @@ class VirtualMachineTest implements WithAssertions {
     @DisplayName("call functions without arguments and without return value")
     void call_functions_without_arguments_and_without_return_value(VmTestCase vmTestCase) {
         runVirtualMachineTest(vmTestCase);
+    }
+
+    @Test
+    @DisplayName("first class function")
+    void first_class_function() {
+        runVirtualMachineTest(new VmTestCase("""
+                let returnsOne = fn() { 1; };
+                let returnsOneReturner = fn() { returnsOne; };
+                returnsOneReturner()();
+                """, 1));
     }
 
     private void runVirtualMachineTest(VmTestCase vmTestCase) {
