@@ -29,6 +29,7 @@ import static com.github.lipinskipawel.mlang.code.OpCode.OP_DIV;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_EQUAL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_FALSE;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_GET_GLOBAL;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_GET_LOCAL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_GREATER_THAN;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_HASH;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_INDEX;
@@ -42,6 +43,7 @@ import static com.github.lipinskipawel.mlang.code.OpCode.OP_POP;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_RETURN;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_RETURN_VALUE;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_SET_GLOBAL;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_SET_LOCAL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_SUB;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_TRUE;
 import static com.github.lipinskipawel.mlang.compiler.Compiler.compiler;
@@ -508,6 +510,70 @@ class CompilerTest implements WithAssertions {
     @MethodSource("functionCalls")
     @DisplayName("function calls")
     void function_calls(CompilerTestCase compilerTestCase) {
+        runCompiler(compilerTestCase);
+    }
+
+    private static Stream<Arguments> letStatementScopes() {
+        return Stream.of(
+                of(new CompilerTestCase("""
+                        let num = 55;
+                        fn() { num }
+                        """, List.of(
+                        55,
+                        List.of(
+                                instructions(make(OP_GET_GLOBAL, new int[]{0})),
+                                instructions(make(OP_RETURN_VALUE, new int[0]))
+                        )
+                ), List.of(
+                        instructions(make(OP_CONSTANT, new int[]{0})),
+                        instructions(make(OP_SET_GLOBAL, new int[]{0})),
+                        instructions(make(OP_CONSTANT, new int[]{1})),
+                        instructions(make(OP_POP, new int[0]))
+                ))),
+                of(new CompilerTestCase("""
+                        fn() {
+                            let num = 55;
+                            num
+                        }
+                        """, List.of(
+                        55,
+                        List.of(
+                                instructions(make(OP_CONSTANT, new int[]{0})),
+                                instructions(make(OP_SET_LOCAL, new int[]{0})),
+                                instructions(make(OP_GET_LOCAL, new int[]{0})),
+                                instructions(make(OP_RETURN_VALUE, new int[0]))
+                        )
+                ), List.of(
+                        instructions(make(OP_CONSTANT, new int[]{1})),
+                        instructions(make(OP_POP, new int[0]))
+                ))),
+                of(new CompilerTestCase("""
+                        fn() {
+                            let a = 55;
+                            let b = 77;
+                            a + b
+                        }
+                        """, List.of(
+                        55, 77,
+                        List.of(
+                                instructions(make(OP_CONSTANT, new int[]{0})),
+                                instructions(make(OP_SET_LOCAL, new int[]{0})),
+                                instructions(make(OP_CONSTANT, new int[]{1})),
+                                instructions(make(OP_SET_LOCAL, new int[]{1})),
+                                instructions(make(OP_GET_LOCAL, new int[]{0})),
+                                instructions(make(OP_GET_LOCAL, new int[]{1})),
+                                instructions(make(OP_RETURN_VALUE, new int[0]))
+                        )
+                ), List.of(
+                        instructions(make(OP_CONSTANT, new int[]{2})),
+                        instructions(make(OP_POP, new int[0]))
+                )))
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("letStatementScopes")
+    void let_statement_scopes(CompilerTestCase compilerTestCase) {
         runCompiler(compilerTestCase);
     }
 
