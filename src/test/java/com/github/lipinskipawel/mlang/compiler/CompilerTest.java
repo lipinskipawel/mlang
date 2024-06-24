@@ -452,6 +452,7 @@ class CompilerTest implements WithAssertions {
     void compiler_scopes() {
         var compiler = compiler();
         assertThat(compiler.scopeIndex).isEqualTo(0);
+        var globalSymbolTable = compiler.symbolTable;
 
         compiler.emit(OP_MUL);
         compiler.enterScope();
@@ -462,8 +463,12 @@ class CompilerTest implements WithAssertions {
         var last = compiler.compilationScopes.get(compiler.scopeIndex).lastInstruction();
         assertThat(last.opCode()).isEqualTo(OP_SUB);
 
+        assertThat(compiler.symbolTable.outer).isEqualTo(globalSymbolTable);
+
         compiler.leaveScope();
         assertThat(compiler.scopeIndex).isEqualTo(0);
+        assertThat(compiler.symbolTable).isEqualTo(globalSymbolTable);
+        assertThat(compiler.symbolTable.outer).isNull();
 
         compiler.emit(OP_ADD);
         assertThat(compiler.compilationScopes.get(compiler.scopeIndex).instructions().length()).isEqualTo(2);
@@ -562,6 +567,7 @@ class CompilerTest implements WithAssertions {
                                 instructions(make(OP_SET_LOCAL, new int[]{1})),
                                 instructions(make(OP_GET_LOCAL, new int[]{0})),
                                 instructions(make(OP_GET_LOCAL, new int[]{1})),
+                                instructions(make(OP_ADD, new int[0])),
                                 instructions(make(OP_RETURN_VALUE, new int[0]))
                         )
                 ), List.of(

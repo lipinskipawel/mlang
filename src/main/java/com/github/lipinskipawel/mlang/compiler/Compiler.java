@@ -40,6 +40,7 @@ import static com.github.lipinskipawel.mlang.code.OpCode.OP_DIV;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_EQUAL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_FALSE;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_GET_GLOBAL;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_GET_LOCAL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_GREATER_THAN;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_HASH;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_INDEX;
@@ -53,9 +54,12 @@ import static com.github.lipinskipawel.mlang.code.OpCode.OP_POP;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_RETURN;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_RETURN_VALUE;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_SET_GLOBAL;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_SET_LOCAL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_SUB;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_TRUE;
 import static com.github.lipinskipawel.mlang.code.OpCode.opCode;
+import static com.github.lipinskipawel.mlang.compiler.SymbolTable.SymbolScope.GLOBAL_SCOPE;
+import static com.github.lipinskipawel.mlang.compiler.SymbolTable.enclosedSymbolTable;
 import static com.github.lipinskipawel.mlang.compiler.SymbolTable.symbolTable;
 import static java.util.Comparator.comparing;
 import static java.util.Objects.requireNonNull;
@@ -64,7 +68,7 @@ import static java.util.Optional.of;
 
 public final class Compiler {
     private final List<MonkeyObject> constants;
-    private final SymbolTable symbolTable;
+    SymbolTable symbolTable;
     final List<CompilationScope> compilationScopes;
     int scopeIndex;
 
@@ -101,14 +105,22 @@ public final class Compiler {
                 }
 
                 final var symbol = symbolTable.define(letStatement.name().value());
-                emit(OP_SET_GLOBAL, symbol.index());
+                if (symbol.scope() == GLOBAL_SCOPE) {
+                    emit(OP_SET_GLOBAL, symbol.index());
+                } else {
+                    emit(OP_SET_LOCAL, symbol.index());
+                }
             }
             case Identifier identifier -> {
                 final var resolve = symbolTable.resolve(identifier.value());
                 if (resolve.isEmpty()) {
                     return of("undefined variable [%s]".formatted(identifier.value()));
                 }
-                emit(OP_GET_GLOBAL, resolve.get().index());
+                if (resolve.get().scope() == GLOBAL_SCOPE) {
+                    emit(OP_GET_GLOBAL, resolve.get().index());
+                } else {
+                    emit(OP_GET_LOCAL, resolve.get().index());
+                }
             }
             case ExpressionStatement statement -> {
                 final var result = compile(statement.expression());
@@ -347,6 +359,7 @@ public final class Compiler {
 
         compilationScopes.add(scope);
         scopeIndex++;
+        symbolTable = enclosedSymbolTable(symbolTable);
     }
 
     Instructions leaveScope() {
@@ -354,6 +367,7 @@ public final class Compiler {
 
         compilationScopes.removeLast();
         scopeIndex--;
+        symbolTable = symbolTable.outer;
 
         return instructions;
     }

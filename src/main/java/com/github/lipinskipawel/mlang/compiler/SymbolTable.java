@@ -2,6 +2,7 @@ package com.github.lipinskipawel.mlang.compiler;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 import static com.github.lipinskipawel.mlang.compiler.SymbolTable.SymbolScope.GLOBAL_SCOPE;
@@ -23,9 +24,9 @@ public class SymbolTable {
     public record Symbol(String name, SymbolScope scope, int index) {
     }
 
-    private SymbolTable outer;
     private final Map<String, Symbol> store;
     private int numDefinitions;
+    SymbolTable outer;
 
     private SymbolTable(Map<String, Symbol> store, int numDefinitions) {
         this.store = requireNonNull(store);
@@ -51,10 +52,23 @@ public class SymbolTable {
     }
 
     public Optional<Symbol> resolve(String identifier) {
-        final var value = store.get(identifier);
-        if (value == null && outer != null) {
-            return resolve(identifier);
+        final var symbol = store.get(identifier);
+        if (symbol == null && outer != null) {
+            return outer.resolve(identifier);
         }
-        return ofNullable(value);
+        return ofNullable(symbol);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        SymbolTable table = (SymbolTable) o;
+        return numDefinitions == table.numDefinitions && Objects.equals(store, table.store) && Objects.equals(outer, table.outer);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(store, numDefinitions, outer);
     }
 }
