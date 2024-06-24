@@ -6,13 +6,27 @@ import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.COMPIL
 
 public final class CompilerFunction extends MonkeyObject {
     private final Instructions instructions;
+    private final int numberOfLocals;
 
-    public CompilerFunction(Instructions instructions) {
+    private CompilerFunction(Instructions instructions, int numberOfLocals) {
         this.instructions = instructions;
+        this.numberOfLocals = numberOfLocals;
+    }
+
+    public static CompilerFunction compilerFunction(Instructions instructions) {
+        return new CompilerFunction(instructions, 0);
+    }
+
+    public static CompilerFunction compilerFunction(Instructions instructions, int numberOfLocals) {
+        return new CompilerFunction(instructions, numberOfLocals);
     }
 
     public Instructions instructions() {
         return instructions;
+    }
+
+    public int numberOfLocals() {
+        return numberOfLocals;
     }
 
     @Override

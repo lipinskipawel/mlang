@@ -7,14 +7,16 @@ final class Frame {
 
     private final CompilerFunction fn;
     private int instructionPointer; // instruction pointer in this frame
+    private int basePointer; // ip before we execute the function call
 
-    private Frame(CompilerFunction fn, int instructionPointer) {
+    private Frame(CompilerFunction fn, int instructionPointer, int basePointer) {
         this.fn = fn;
         this.instructionPointer = instructionPointer;
+        this.basePointer = basePointer;
     }
 
-    public static Frame frame(CompilerFunction fn) {
-        return new Frame(fn, -1);
+    public static Frame frame(CompilerFunction fn, int basePointer) {
+        return new Frame(fn, -1, basePointer);
     }
 
     Instructions instructions() {
@@ -35,5 +37,9 @@ final class Frame {
 
     void setInstructionPointer(int newInstructionPointer) {
         instructionPointer = newInstructionPointer;
+    }
+
+    int basePointer() {
+        return basePointer;
     }
 }

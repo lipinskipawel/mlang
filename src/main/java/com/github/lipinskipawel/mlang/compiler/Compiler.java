@@ -2,7 +2,6 @@ package com.github.lipinskipawel.mlang.compiler;
 
 import com.github.lipinskipawel.mlang.code.Instructions;
 import com.github.lipinskipawel.mlang.code.OpCode;
-import com.github.lipinskipawel.mlang.evaluator.objects.CompilerFunction;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyInteger;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyObject;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyString;
@@ -61,6 +60,7 @@ import static com.github.lipinskipawel.mlang.code.OpCode.opCode;
 import static com.github.lipinskipawel.mlang.compiler.SymbolTable.SymbolScope.GLOBAL_SCOPE;
 import static com.github.lipinskipawel.mlang.compiler.SymbolTable.enclosedSymbolTable;
 import static com.github.lipinskipawel.mlang.compiler.SymbolTable.symbolTable;
+import static com.github.lipinskipawel.mlang.evaluator.objects.CompilerFunction.compilerFunction;
 import static java.util.Comparator.comparing;
 import static java.util.Objects.requireNonNull;
 import static java.util.Optional.empty;
@@ -291,8 +291,9 @@ public final class Compiler {
                     emit(OP_RETURN);
                 }
 
+                final var numberOfLocals = symbolTable.numDefinitions();
                 final var instructions = leaveScope();
-                final var compilerFunction = new CompilerFunction(instructions);
+                final var compilerFunction = compilerFunction(instructions, numberOfLocals);
                 emit(OP_CONSTANT, addConstant(compilerFunction));
             }
             case ReturnStatement returnStatement -> {

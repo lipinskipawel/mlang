@@ -12,7 +12,6 @@ import com.github.lipinskipawel.mlang.parser.Parser;
 import com.github.lipinskipawel.mlang.parser.ast.Program;
 import org.assertj.core.api.WithAssertions;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -270,14 +269,70 @@ class VirtualMachineTest implements WithAssertions {
         runVirtualMachineTest(vmTestCase);
     }
 
-    @Test
+    private static Stream<Arguments> firstClassFunctions() {
+        return Stream.of(
+                of(new VmTestCase("""
+                        let returnsOne = fn() { 1; };
+                        let returnsOneReturner = fn() { returnsOne; };
+                        returnsOneReturner()();
+                        """, 1)),
+                of(new VmTestCase("""
+                        let returnsOneReturner = fn() {
+                          let returnsOne = fn() { 1; };
+                          returnsOne;
+                        };
+                        returnsOneReturner()();
+                        """, 1))
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("firstClassFunctions")
     @DisplayName("first class function")
-    void first_class_function() {
-        runVirtualMachineTest(new VmTestCase("""
-                let returnsOne = fn() { 1; };
-                let returnsOneReturner = fn() { returnsOne; };
-                returnsOneReturner()();
-                """, 1));
+    void first_class_function(VmTestCase vmTestCase) {
+        runVirtualMachineTest(vmTestCase);
+    }
+
+    private static Stream<Arguments> callFunctionWithBindings() {
+        return Stream.of(
+                of(new VmTestCase("""
+                        let one = fn() { let one = 1; one };
+                        one();
+                        """, 1)),
+                of(new VmTestCase("""
+                        let oneAndTwo = fn() { let one = 1; let two = 2; one + two; };
+                        oneAndTwo();
+                        """, 3)),
+                of(new VmTestCase("""
+                        let oneAndTwo = fn() { let one = 1; let two = 2; one + two; };
+                        let threeAndFour = fn() { let three = 3; let four = 4; three + four; };
+                        oneAndTwo() + threeAndFour();
+                        """, 10)),
+                of(new VmTestCase("""
+                        let firstFoobar = fn() { let foobar = 50; foobar; };
+                        let secondFoobar = fn() { let foobar = 100; foobar; };
+                        firstFoobar() + secondFoobar();
+                        """, 150)),
+                of(new VmTestCase("""
+                        let globalSeed = 50;
+                        let minusOne = fn() {
+                            let num = 1;
+                            globalSeed - num;
+                        }
+                        let minusTwo = fn() {
+                            let num = 2;
+                            globalSeed - num;
+                        }
+                        minusOne() + minusTwo();
+                        """, 97))
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("callFunctionWithBindings")
+    @DisplayName("call function with bindings")
+    void call_functions_with_binding(VmTestCase vmTestCase) {
+        runVirtualMachineTest(vmTestCase);
     }
 
     private void runVirtualMachineTest(VmTestCase vmTestCase) {

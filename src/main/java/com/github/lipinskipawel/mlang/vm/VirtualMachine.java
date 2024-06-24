@@ -18,6 +18,7 @@ import java.util.Optional;
 
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_ADD;
 import static com.github.lipinskipawel.mlang.code.OpCode.opCode;
+import static com.github.lipinskipawel.mlang.evaluator.objects.CompilerFunction.compilerFunction;
 import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.ARRAY_OBJ;
 import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.HASH_OBJ;
 import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.INTEGER_OBJ;
@@ -52,8 +53,8 @@ public final class VirtualMachine {
         this.stack = stack;
         this.globals = globals;
 
-        final var mainFn = new CompilerFunction(bytecode.instructions());
-        final var mainFrame = frame(mainFn);
+        final var mainFn = compilerFunction(bytecode.instructions());
+        final var mainFrame = frame(mainFn, 0);
 
         this.frames = new Frame[MAX_FRAMES];
         this.frames[0] = mainFrame;
@@ -173,6 +174,25 @@ public final class VirtualMachine {
                         return error;
                     }
                 }
+                case OP_SET_LOCAL -> {
+                    final var localIndex = readByte(instructions.slice(instructionPointer + 1, instructions.bytes().length));
+                    currentFrame().incrementInstructionPointer();
+
+                    final var frame = currentFrame();
+
+                    stack[frame.basePointer() + localIndex] = pop();
+                }
+                case OP_GET_LOCAL -> {
+                    final var localIndex = readByte(instructions.slice(instructionPointer + 1, instructions.bytes().length));
+                    currentFrame().incrementInstructionPointer();
+
+                    final var frame = currentFrame();
+
+                    final var error = push(stack[frame.basePointer() + localIndex]);
+                    if (error.isPresent()) {
+                        return error;
+                    }
+                }
                 case OP_ARRAY -> {
                     final var arrayLength = readShort(instructions.slice(instructionPointer + 1, instructions.bytes().length));
                     currentFrame().incrementInstructionPointer(2);
@@ -219,14 +239,15 @@ public final class VirtualMachine {
                     } catch (Exception e) {
                         return of("calling non-function");
                     }
-                    final var newFrame = frame(fn);
+                    final var newFrame = frame(fn, stackPointer);
                     pushFrame(newFrame);
+                    stackPointer = newFrame.basePointer() + fn.numberOfLocals();
                 }
                 case OP_RETURN_VALUE -> {
                     final var returnValue = pop();
 
-                    popFrame();
-                    pop();
+                    final var frame = popFrame();
+                    stackPointer = frame.basePointer() - 1;
 
                     final var error = push(returnValue);
                     if (error.isPresent()) {
@@ -234,8 +255,8 @@ public final class VirtualMachine {
                     }
                 }
                 case OP_RETURN -> {
-                    popFrame();
-                    pop();
+                    final var frame = popFrame();
+                    stackPointer = frame.basePointer() - 1;
 
                     final var error = push(NULL);
                     if (error.isPresent()) {
@@ -427,5 +448,9 @@ public final class VirtualMachine {
 
     private short readShort(byte[] bytes) {
         return ByteBuffer.wrap(bytes).order(BIG_ENDIAN).getShort();
+    }
+
+    private int readByte(byte[] bytes) {
+        return bytes[0];
     }
 }

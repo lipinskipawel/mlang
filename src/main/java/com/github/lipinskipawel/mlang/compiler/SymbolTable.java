@@ -59,6 +59,10 @@ public class SymbolTable {
         return ofNullable(symbol);
     }
 
+    public int numDefinitions() {
+        return numDefinitions;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
