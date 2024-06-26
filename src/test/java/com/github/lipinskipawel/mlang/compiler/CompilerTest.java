@@ -507,6 +507,40 @@ class CompilerTest implements WithAssertions {
                         instructions(make(OP_GET_GLOBAL, new int[]{0})),
                         instructions(make(OP_CALL, new int[0])),
                         instructions(make(OP_POP, new int[0]))
+                ))),
+                of(new CompilerTestCase("""
+                        let oneArg = fn(a) { };
+                        oneArg(24);
+                        """, List.of(
+                        List.of(
+                                instructions(make(OP_RETURN, new int[0]))
+                        ),
+                        24
+                ), List.of(
+                        instructions(make(OP_CONSTANT, new int[]{0})),
+                        instructions(make(OP_SET_GLOBAL, new int[]{0})),
+                        instructions(make(OP_GET_GLOBAL, new int[]{0})),
+                        instructions(make(OP_CONSTANT, new int[]{1})),
+                        instructions(make(OP_CALL, new int[]{1})),
+                        instructions(make(OP_POP, new int[0]))
+                ))),
+                of(new CompilerTestCase("""
+                        let manyArg = fn(a, b, c) { };
+                        manyArg(24, 25, 26);
+                        """, List.of(
+                        List.of(
+                                instructions(make(OP_RETURN, new int[0]))
+                        ),
+                        24, 25, 26
+                ), List.of(
+                        instructions(make(OP_CONSTANT, new int[]{0})),
+                        instructions(make(OP_SET_GLOBAL, new int[]{0})),
+                        instructions(make(OP_GET_GLOBAL, new int[]{0})),
+                        instructions(make(OP_CONSTANT, new int[]{1})),
+                        instructions(make(OP_CONSTANT, new int[]{2})),
+                        instructions(make(OP_CONSTANT, new int[]{3})),
+                        instructions(make(OP_CALL, new int[]{3})),
+                        instructions(make(OP_POP, new int[0]))
                 )))
         );
     }

@@ -304,11 +304,19 @@ public final class Compiler {
                 emit(OP_RETURN_VALUE);
             }
             case CallExpression callExpression -> {
-                final var error = compile(callExpression.function());
+                var error = compile(callExpression.function());
                 if (error.isPresent()) {
                     return error;
                 }
-                emit(OP_CALL);
+
+                for (var arg : callExpression.arguments()) {
+                    error = compile(arg);
+                    if (error.isPresent()) {
+                        return error;
+                    }
+                }
+
+                emit(OP_CALL, callExpression.arguments().size());
             }
             default -> throw new IllegalStateException("Unexpected value: " + ast);
         }

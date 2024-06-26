@@ -63,7 +63,7 @@ public enum OpCode {
             entry(OP_ARRAY, new Definition("OpArray", new int[]{2})),
             entry(OP_HASH, new Definition("OpHash", new int[]{2})), // num key + val
             entry(OP_INDEX, new Definition("OpIndex", new int[0])),
-            entry(OP_CALL, new Definition("OpCall", new int[0])),
+            entry(OP_CALL, new Definition("OpCall", new int[]{1})),
             entry(OP_RETURN_VALUE, new Definition("OpReturnValue", new int[0])),
             entry(OP_RETURN, new Definition("OpReturn", new int[0])),
             entry(OP_GET_LOCAL, new Definition("OpGetLocal", new int[]{1})),
