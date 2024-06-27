@@ -509,11 +509,12 @@ class CompilerTest implements WithAssertions {
                         instructions(make(OP_POP, new int[0]))
                 ))),
                 of(new CompilerTestCase("""
-                        let oneArg = fn(a) { };
+                        let oneArg = fn(a) { a };
                         oneArg(24);
                         """, List.of(
                         List.of(
-                                instructions(make(OP_RETURN, new int[0]))
+                                instructions(make(OP_GET_LOCAL, new int[]{0})),
+                                instructions(make(OP_RETURN_VALUE, new int[0]))
                         ),
                         24
                 ), List.of(
@@ -525,11 +526,16 @@ class CompilerTest implements WithAssertions {
                         instructions(make(OP_POP, new int[0]))
                 ))),
                 of(new CompilerTestCase("""
-                        let manyArg = fn(a, b, c) { };
+                        let manyArg = fn(a, b, c) { a; b; c; };
                         manyArg(24, 25, 26);
                         """, List.of(
                         List.of(
-                                instructions(make(OP_RETURN, new int[0]))
+                                instructions(make(OP_GET_LOCAL, new int[]{0})),
+                                instructions(make(OP_POP, new int[0])),
+                                instructions(make(OP_GET_LOCAL, new int[]{1})),
+                                instructions(make(OP_POP, new int[0])),
+                                instructions(make(OP_GET_LOCAL, new int[]{2})),
+                                instructions(make(OP_RETURN_VALUE, new int[0]))
                         ),
                         24, 25, 26
                 ), List.of(

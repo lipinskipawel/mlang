@@ -279,6 +279,10 @@ public final class Compiler {
             case FunctionLiteral functionLiteral -> {
                 enterScope();
 
+                for (var param : functionLiteral.parameters()) {
+                    symbolTable.define(param.value());
+                }
+
                 final var error = compile(functionLiteral.body());
                 if (error.isPresent()) {
                     return error;
