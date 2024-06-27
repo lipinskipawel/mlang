@@ -233,15 +233,13 @@ public final class VirtualMachine {
                     }
                 }
                 case OP_CALL -> {
-                    CompilerFunction fn;
-                    try {
-                        fn = (CompilerFunction) stack[stackPointer - 1];
-                    } catch (Exception e) {
-                        return of("calling non-function");
+                    final var numArgs = readByte(instructions.slice(instructionPointer + 1, instructions.bytes().length));
+                    currentFrame().incrementInstructionPointer();
+
+                    final var error = callFunction(numArgs);
+                    if (error.isPresent()) {
+                        return error;
                     }
-                    final var newFrame = frame(fn, stackPointer);
-                    pushFrame(newFrame);
-                    stackPointer = newFrame.basePointer() + fn.numberOfLocals();
                 }
                 case OP_RETURN_VALUE -> {
                     final var returnValue = pop();
@@ -266,6 +264,23 @@ public final class VirtualMachine {
             }
         }
 
+        return empty();
+    }
+
+    private Optional<Object> callFunction(int numArgs) {
+        CompilerFunction fn;
+        try {
+            fn = (CompilerFunction) stack[stackPointer - 1 - numArgs];
+        } catch (Exception e) {
+            return of("calling non-function");
+        }
+        if (numArgs != fn.numberOfParameters()) {
+            return of("wrong number of arguments want=%d, got=%d".formatted(fn.numberOfParameters(), numArgs));
+        }
+        final var newFrame = frame(fn, stackPointer - numArgs);
+        pushFrame(newFrame);
+
+        stackPointer = newFrame.basePointer() + fn.numberOfLocals();
         return empty();
     }
 

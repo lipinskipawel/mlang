@@ -335,6 +335,89 @@ class VirtualMachineTest implements WithAssertions {
         runVirtualMachineTest(vmTestCase);
     }
 
+    private static Stream<Arguments> callFunctionWithArgumentsAndBindings() {
+        return Stream.of(
+                of(new VmTestCase("""
+                        let identity = fn(a) { a; };
+                        identity(4);
+                        """, 4)),
+                of(new VmTestCase("""
+                        let sum = fn(a, b) { a + b; };
+                        sum(1, 2);
+                        """, 3)),
+                of(new VmTestCase("""
+                        let sum = fn(a, b) {
+                            let c = a + b;
+                            c;
+                        };
+                        sum(1, 2);
+                        """, 3)),
+                of(new VmTestCase("""
+                        let sum = fn(a, b) {
+                            let c = a + b;
+                            c;
+                        };
+                        sum(1, 2) + sum(3, 4);
+                        """, 10)),
+                of(new VmTestCase("""
+                        let sum = fn(a, b) {
+                            let c = a + b;
+                            c;
+                        };
+                        let outer = fn() {
+                            sum(1, 2) + sum(3, 4);
+                        };
+                        outer();
+                        """, 10)),
+                of(new VmTestCase("""
+                        let globalNum = 10;
+
+                        let sum = fn(a, b) {
+                            let c = a + b;
+                            c + globalNum;
+                        };
+
+                        let outer = fn() {
+                            sum(1, 2) + sum(3, 4) + globalNum;
+                        };
+
+                        outer() + globalNum;
+                        """, 50))
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("callFunctionWithArgumentsAndBindings")
+    @DisplayName("call function with arguments and bindings")
+    void call_function_with_arguments_and_bindings(VmTestCase vmTestCase) {
+        runVirtualMachineTest(vmTestCase);
+    }
+
+    private static Stream<Arguments> callFunctionWithWrongNumberOfArguments() {
+        return Stream.of(
+                of(new VmTestCase("fn() { 1; }(1);", "wrong number of arguments want=0, got=1")),
+                of(new VmTestCase("fn(a) { a; }()", "wrong number of arguments want=1, got=0")),
+                of(new VmTestCase("fn(a, b) { a + b; }(1);", "wrong number of arguments want=2, got=1"))
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("callFunctionWithWrongNumberOfArguments")
+    void call_function_with_wrong_number_of_arguments(VmTestCase vmTestCase) {
+        var program = parse(vmTestCase.input());
+
+        var compiler = compiler();
+        var compilerError = compiler.compile(program);
+        compilerError.ifPresent(err -> fail("compiler error: [{}]", err));
+
+        var virtualMachine = virtualMachine(compiler.bytecode());
+        var vmError = virtualMachine.run();
+        assertThat(vmError).isPresent();
+
+        assertThat(vmError.get()).isEqualTo(vmTestCase.expected);
+    }
+
+
     private void runVirtualMachineTest(VmTestCase vmTestCase) {
         var program = parse(vmTestCase.input());
 

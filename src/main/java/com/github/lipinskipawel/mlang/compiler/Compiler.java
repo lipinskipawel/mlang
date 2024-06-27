@@ -297,7 +297,7 @@ public final class Compiler {
 
                 final var numberOfLocals = symbolTable.numDefinitions();
                 final var instructions = leaveScope();
-                final var compilerFunction = compilerFunction(instructions, numberOfLocals);
+                final var compilerFunction = compilerFunction(instructions, numberOfLocals, functionLiteral.parameters().size());
                 emit(OP_CONSTANT, addConstant(compilerFunction));
             }
             case ReturnStatement returnStatement -> {
