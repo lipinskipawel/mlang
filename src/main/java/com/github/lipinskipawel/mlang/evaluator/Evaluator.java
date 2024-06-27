@@ -1,5 +1,17 @@
 package com.github.lipinskipawel.mlang.evaluator;
 
+import com.github.lipinskipawel.mlang.evaluator.objects.Hashable;
+import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyArray;
+import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyBoolean;
+import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyBuiltin;
+import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyError;
+import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyFunction;
+import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyHash;
+import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyInteger;
+import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyNull;
+import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyObject;
+import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyString;
+import com.github.lipinskipawel.mlang.evaluator.objects.ReturnValue;
 import com.github.lipinskipawel.mlang.parser.ast.Node;
 import com.github.lipinskipawel.mlang.parser.ast.Program;
 import com.github.lipinskipawel.mlang.parser.ast.expression.ArrayLiteral;
@@ -20,18 +32,6 @@ import com.github.lipinskipawel.mlang.parser.ast.statement.ExpressionStatement;
 import com.github.lipinskipawel.mlang.parser.ast.statement.LetStatement;
 import com.github.lipinskipawel.mlang.parser.ast.statement.ReturnStatement;
 import com.github.lipinskipawel.mlang.parser.ast.statement.Statement;
-import com.github.lipinskipawel.mlang.evaluator.objects.Hashable;
-import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyArray;
-import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyBoolean;
-import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyBuiltin;
-import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyError;
-import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyFunction;
-import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyHash;
-import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyInteger;
-import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyNull;
-import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyObject;
-import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyString;
-import com.github.lipinskipawel.mlang.evaluator.objects.ReturnValue;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -229,7 +229,13 @@ public final class Evaluator {
                 final var evaluated = eval(function.block(), extendedEnv);
                 yield unwrapReturnValue(evaluated);
             }
-            case BUILTIN_OBJ -> ((MonkeyBuiltin) fn).builtin(arguments);
+            case BUILTIN_OBJ -> {
+                final var result = ((MonkeyBuiltin) fn).builtin(arguments);
+                if (result != null) {
+                    yield result;
+                }
+                yield NULL;
+            }
             default -> newError("not a function: %s".formatted(fn.type()));
         };
     }
