@@ -305,7 +305,7 @@ final class EvaluatorTest implements WithAssertions {
                 arguments("len(\"\")", 0),
                 arguments("len(\"four\")", 4),
                 arguments("len(\"hello world\")", 11),
-                arguments("len(1)", "argument to [len] not supported, got INTEGER"),
+                arguments("len(1)", "argument to 'len' not supported, got INTEGER"),
                 arguments("len(\"one\", \"two\")", "wrong number of arguments. got=2, want=1"),
                 arguments("len([1, 2, 3])", 3),
                 arguments("len([])", 0),

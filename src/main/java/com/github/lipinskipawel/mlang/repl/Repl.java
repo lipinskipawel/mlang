@@ -13,6 +13,7 @@ import java.util.Scanner;
 import static com.github.lipinskipawel.mlang.compiler.Compiler.compiler;
 import static com.github.lipinskipawel.mlang.compiler.SymbolTable.symbolTable;
 import static com.github.lipinskipawel.mlang.lexer.Lexer.lexer;
+import static com.github.lipinskipawel.mlang.object.Builtins.builtins;
 import static com.github.lipinskipawel.mlang.vm.VirtualMachine.GLOBAL_SIZE;
 import static com.github.lipinskipawel.mlang.vm.VirtualMachine.virtualMachine;
 
@@ -39,6 +40,10 @@ final class Repl {
             final List<MonkeyObject> constants = new ArrayList<>();
             final MonkeyObject[] globals = new MonkeyObject[GLOBAL_SIZE];
             final var symbolTable = symbolTable();
+            final var builtins = builtins();
+            for (var i = 0; i < builtins.size(); i++) {
+                symbolTable.defineBuiltin(i, builtins.get(i).name());
+            }
 
             while (true) {
                 output.print(PROMPT);

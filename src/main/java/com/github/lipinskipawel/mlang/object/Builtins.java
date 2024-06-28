@@ -36,7 +36,7 @@ public final class Builtins {
                                 final var array = (MonkeyArray) objects.get(0);
                                 yield new MonkeyInteger(array.elements().size());
                             }
-                            default -> newError("argument to [len] not supported, got %s", objects.get(0).type());
+                            default -> newError("argument to 'len' not supported, got %s", objects.get(0).type());
                         };
                     }
                 }),

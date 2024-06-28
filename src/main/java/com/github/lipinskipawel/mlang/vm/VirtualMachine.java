@@ -6,6 +6,7 @@ import com.github.lipinskipawel.mlang.evaluator.objects.CompilerFunction;
 import com.github.lipinskipawel.mlang.evaluator.objects.Hashable;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyArray;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyBoolean;
+import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyBuiltin;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyHash;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyInteger;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyNull;
@@ -23,8 +24,10 @@ import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.ARRAY_
 import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.HASH_OBJ;
 import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.INTEGER_OBJ;
 import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.STRING_OBJ;
+import static com.github.lipinskipawel.mlang.object.Builtins.builtins;
 import static com.github.lipinskipawel.mlang.vm.Frame.frame;
 import static java.nio.ByteOrder.BIG_ENDIAN;
+import static java.util.Arrays.asList;
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
 import static java.util.stream.Stream.iterate;
@@ -193,6 +196,17 @@ public final class VirtualMachine {
                         return error;
                     }
                 }
+                case OP_GET_BUILTIN -> {
+                    final var builtinIndex = readByte(instructions.slice(instructionPointer + 1, instructions.bytes().length));
+                    currentFrame().incrementInstructionPointer();
+
+                    final var definition = builtins().get(builtinIndex);
+
+                    final var error = push(definition.builtin());
+                    if (error.isPresent()) {
+                        return error;
+                    }
+                }
                 case OP_ARRAY -> {
                     final var arrayLength = readShort(instructions.slice(instructionPointer + 1, instructions.bytes().length));
                     currentFrame().incrementInstructionPointer(2);
@@ -236,7 +250,7 @@ public final class VirtualMachine {
                     final var numArgs = readByte(instructions.slice(instructionPointer + 1, instructions.bytes().length));
                     currentFrame().incrementInstructionPointer();
 
-                    final var error = callFunction(numArgs);
+                    final var error = executeCall(numArgs);
                     if (error.isPresent()) {
                         return error;
                     }
@@ -267,13 +281,16 @@ public final class VirtualMachine {
         return empty();
     }
 
-    private Optional<Object> callFunction(int numArgs) {
-        CompilerFunction fn;
-        try {
-            fn = (CompilerFunction) stack[stackPointer - 1 - numArgs];
-        } catch (Exception e) {
-            return of("calling non-function");
-        }
+    private Optional<Object> executeCall(int numArgs) {
+        final var callee = stack[stackPointer - 1 - numArgs];
+        return switch (callee.type()) {
+            case COMPILED_FUNCTION_OBJ -> callFunction((CompilerFunction) callee, numArgs);
+            case BUILTIN_OBJ -> callBuiltin((MonkeyBuiltin) callee, numArgs);
+            default -> of("calling non-function and non-built-in");
+        };
+    }
+
+    private Optional<Object> callFunction(CompilerFunction fn, int numArgs) {
         if (numArgs != fn.numberOfParameters()) {
             return of("wrong number of arguments want=%d, got=%d".formatted(fn.numberOfParameters(), numArgs));
         }
@@ -282,6 +299,25 @@ public final class VirtualMachine {
 
         stackPointer = newFrame.basePointer() + fn.numberOfLocals();
         return empty();
+    }
+
+    private Optional<Object> callBuiltin(MonkeyBuiltin fn, int numArgs) {
+        final var args = slice(stack, stackPointer - numArgs, stackPointer);
+
+        final var result = fn.builtin(args);
+        stackPointer = stackPointer - numArgs - 1;
+
+        if (result != null) {
+            push(result);
+        } else {
+            push(NULL);
+        }
+
+        return empty();
+    }
+
+    private List<MonkeyObject> slice(MonkeyObject[] slice, int start, int end) {
+        return asList(slice).subList(start, end);
     }
 
     private Optional<Object> executeBinaryOperation(OpCode op) {

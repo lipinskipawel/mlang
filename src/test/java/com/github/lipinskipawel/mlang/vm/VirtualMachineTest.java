@@ -3,6 +3,7 @@ package com.github.lipinskipawel.mlang.vm;
 import com.github.lipinskipawel.mlang.evaluator.objects.HashKey;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyArray;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyBoolean;
+import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyError;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyHash;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyInteger;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyNull;
@@ -417,6 +418,35 @@ class VirtualMachineTest implements WithAssertions {
         assertThat(vmError.get()).isEqualTo(vmTestCase.expected);
     }
 
+    private static Stream<Arguments> builtinFunctions() {
+        return Stream.of(
+                of(new VmTestCase("len(\"\")", 0)),
+                of(new VmTestCase("len(\"four\")", 4)),
+                of(new VmTestCase("len(\"Hello world\")", 11)),
+                of(new VmTestCase("len(1)", new MonkeyError("argument to 'len' not supported, got INTEGER"))),
+                of(new VmTestCase("len(\"one\", \"two\")", new MonkeyError("wrong number of arguments. got=2, want=1"))),
+                of(new VmTestCase("len([1, 2, 3])", 3)),
+                of(new VmTestCase("len([])", 0)),
+                of(new VmTestCase("puts(\"hello\", \"world !\")", NULL)),
+                of(new VmTestCase("first([1, 2, 3])", 1)),
+                of(new VmTestCase("first([])", NULL)),
+                of(new VmTestCase("first(1)", new MonkeyError("argument to 'first' must be ARRAY, got INTEGER"))),
+                of(new VmTestCase("last([1, 2, 3])", 3)),
+                of(new VmTestCase("last([])", NULL)),
+                of(new VmTestCase("last(1)", new MonkeyError("argument to 'last' must be ARRAY, got INTEGER"))),
+                of(new VmTestCase("rest([1, 2, 3])", new int[]{2, 3})),
+                of(new VmTestCase("rest([])", NULL)),
+                of(new VmTestCase("push([], 1)", new int[]{1})),
+                of(new VmTestCase("push(1, 1)", new MonkeyError("argument to 'push' must be ARRAY, got INTEGER")))
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("builtinFunctions")
+    @DisplayName("builtin functions")
+    void builtin_functions(VmTestCase vmTestCase) {
+        runVirtualMachineTest(vmTestCase);
+    }
 
     private void runVirtualMachineTest(VmTestCase vmTestCase) {
         var program = parse(vmTestCase.input());
@@ -442,6 +472,7 @@ class VirtualMachineTest implements WithAssertions {
             case int[] array -> testArrayObject(actual, array);
             case Map<?, ?> map -> testMapObject(actual, map);
             case MonkeyNull monkeyNull -> assertThat(actual).isEqualTo(monkeyNull);
+            case MonkeyError monkeyError -> assertThat(actual).isEqualTo(monkeyError);
             default -> throw new IllegalStateException("Unexpected value: " + expected);
         }
     }
