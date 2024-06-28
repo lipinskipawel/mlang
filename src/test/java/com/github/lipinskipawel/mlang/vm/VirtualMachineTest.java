@@ -294,7 +294,7 @@ class VirtualMachineTest implements WithAssertions {
         runVirtualMachineTest(vmTestCase);
     }
 
-    private static Stream<Arguments> callFunctionWithBindings() {
+    private static Stream<Arguments> callClosureWithBindings() {
         return Stream.of(
                 of(new VmTestCase("""
                         let one = fn() { let one = 1; one };
@@ -330,13 +330,13 @@ class VirtualMachineTest implements WithAssertions {
     }
 
     @ParameterizedTest
-    @MethodSource("callFunctionWithBindings")
+    @MethodSource("callClosureWithBindings")
     @DisplayName("call function with bindings")
     void call_functions_with_binding(VmTestCase vmTestCase) {
         runVirtualMachineTest(vmTestCase);
     }
 
-    private static Stream<Arguments> callFunctionWithArgumentsAndBindings() {
+    private static Stream<Arguments> callClosureWithArgumentsAndBindings() {
         return Stream.of(
                 of(new VmTestCase("""
                         let identity = fn(a) { a; };
@@ -388,13 +388,13 @@ class VirtualMachineTest implements WithAssertions {
     }
 
     @ParameterizedTest
-    @MethodSource("callFunctionWithArgumentsAndBindings")
+    @MethodSource("callClosureWithArgumentsAndBindings")
     @DisplayName("call function with arguments and bindings")
     void call_function_with_arguments_and_bindings(VmTestCase vmTestCase) {
         runVirtualMachineTest(vmTestCase);
     }
 
-    private static Stream<Arguments> callFunctionWithWrongNumberOfArguments() {
+    private static Stream<Arguments> callClosureWithWrongNumberOfArguments() {
         return Stream.of(
                 of(new VmTestCase("fn() { 1; }(1);", "wrong number of arguments want=0, got=1")),
                 of(new VmTestCase("fn(a) { a; }()", "wrong number of arguments want=1, got=0")),
@@ -403,7 +403,7 @@ class VirtualMachineTest implements WithAssertions {
     }
 
     @ParameterizedTest
-    @MethodSource("callFunctionWithWrongNumberOfArguments")
+    @MethodSource("callClosureWithWrongNumberOfArguments")
     void call_function_with_wrong_number_of_arguments(VmTestCase vmTestCase) {
         var program = parse(vmTestCase.input());
 

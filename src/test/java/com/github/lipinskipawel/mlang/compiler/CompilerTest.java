@@ -24,6 +24,7 @@ import static com.github.lipinskipawel.mlang.code.OpCode.OP_ADD;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_ARRAY;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_BANG;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_CALL;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_CLOSURE;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_CONSTANT;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_DIV;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_EQUAL;
@@ -391,7 +392,7 @@ class CompilerTest implements WithAssertions {
 
     private static Stream<Arguments> functions() {
         return Stream.of(
-                of(new CompilerTestCase("fn () { return 5 + 10 }", List.of(
+                of(new CompilerTestCase("fn() { return 5 + 10 }", List.of(
                         5,
                         10,
                         List.of(
@@ -401,10 +402,10 @@ class CompilerTest implements WithAssertions {
                                 instructions(make(OP_RETURN_VALUE, new int[0]))
                         )
                 ), List.of(
-                        instructions(make(OP_CONSTANT, new int[]{2})),
+                        instructions(make(OP_CLOSURE, new int[]{2, 0})),
                         instructions(make(OP_POP, new int[0]))
                 ))),
-                of(new CompilerTestCase("fn () { 5 + 10 }", List.of(
+                of(new CompilerTestCase("fn() { 5 + 10 }", List.of(
                         5,
                         10,
                         List.of(
@@ -414,10 +415,10 @@ class CompilerTest implements WithAssertions {
                                 instructions(make(OP_RETURN_VALUE, new int[0]))
                         )
                 ), List.of(
-                        instructions(make(OP_CONSTANT, new int[]{2})),
+                        instructions(make(OP_CLOSURE, new int[]{2, 0})),
                         instructions(make(OP_POP, new int[0]))
                 ))),
-                of(new CompilerTestCase("fn () { 1; 2 }", List.of(
+                of(new CompilerTestCase("fn() { 1; 2 }", List.of(
                         1,
                         2,
                         List.of(
@@ -426,17 +427,16 @@ class CompilerTest implements WithAssertions {
                                 instructions(make(OP_CONSTANT, new int[]{1})),
                                 instructions(make(OP_RETURN_VALUE, new int[0]))
                         )
-                )
-                        , List.of(
-                        instructions(make(OP_CONSTANT, new int[]{2})),
+                ), List.of(
+                        instructions(make(OP_CLOSURE, new int[]{2, 0})),
                         instructions(make(OP_POP, new int[0]))
                 ))),
-                of(new CompilerTestCase("fn () { }", List.of(
+                of(new CompilerTestCase("fn() { }", List.of(
                         List.of(
                                 instructions(make(OP_RETURN, new int[0]))
                         )
                 ), List.of(
-                        instructions(make(OP_CONSTANT, new int[]{0})),
+                        instructions(make(OP_CLOSURE, new int[]{0, 0})),
                         instructions(make(OP_POP, new int[0]))
                 )))
         );
@@ -482,14 +482,14 @@ class CompilerTest implements WithAssertions {
 
     private static Stream<Arguments> functionCalls() {
         return Stream.of(
-                of(new CompilerTestCase("fn () { 24 }()", List.of(
+                of(new CompilerTestCase("fn() { 24 }()", List.of(
                         24,
                         List.of(
                                 instructions(make(OP_CONSTANT, new int[]{0})),
                                 instructions(make(OP_RETURN_VALUE, new int[0]))
                         )
                 ), List.of(
-                        instructions(make(OP_CONSTANT, new int[]{1})),
+                        instructions(make(OP_CLOSURE, new int[]{1, 0})),
                         instructions(make(OP_CALL, new int[0])),
                         instructions(make(OP_POP, new int[0]))
                 ))),
@@ -503,7 +503,7 @@ class CompilerTest implements WithAssertions {
                                 instructions(make(OP_RETURN_VALUE, new int[0]))
                         )
                 ), List.of(
-                        instructions(make(OP_CONSTANT, new int[]{1})),
+                        instructions(make(OP_CLOSURE, new int[]{1, 0})),
                         instructions(make(OP_SET_GLOBAL, new int[]{0})),
                         instructions(make(OP_GET_GLOBAL, new int[]{0})),
                         instructions(make(OP_CALL, new int[0])),
@@ -519,7 +519,7 @@ class CompilerTest implements WithAssertions {
                         ),
                         24
                 ), List.of(
-                        instructions(make(OP_CONSTANT, new int[]{0})),
+                        instructions(make(OP_CLOSURE, new int[]{0, 0})),
                         instructions(make(OP_SET_GLOBAL, new int[]{0})),
                         instructions(make(OP_GET_GLOBAL, new int[]{0})),
                         instructions(make(OP_CONSTANT, new int[]{1})),
@@ -540,7 +540,7 @@ class CompilerTest implements WithAssertions {
                         ),
                         24, 25, 26
                 ), List.of(
-                        instructions(make(OP_CONSTANT, new int[]{0})),
+                        instructions(make(OP_CLOSURE, new int[]{0, 0})),
                         instructions(make(OP_SET_GLOBAL, new int[]{0})),
                         instructions(make(OP_GET_GLOBAL, new int[]{0})),
                         instructions(make(OP_CONSTANT, new int[]{1})),
@@ -573,7 +573,7 @@ class CompilerTest implements WithAssertions {
                 ), List.of(
                         instructions(make(OP_CONSTANT, new int[]{0})),
                         instructions(make(OP_SET_GLOBAL, new int[]{0})),
-                        instructions(make(OP_CONSTANT, new int[]{1})),
+                        instructions(make(OP_CLOSURE, new int[]{1, 0})),
                         instructions(make(OP_POP, new int[0]))
                 ))),
                 of(new CompilerTestCase("""
@@ -590,7 +590,7 @@ class CompilerTest implements WithAssertions {
                                 instructions(make(OP_RETURN_VALUE, new int[0]))
                         )
                 ), List.of(
-                        instructions(make(OP_CONSTANT, new int[]{1})),
+                        instructions(make(OP_CLOSURE, new int[]{1, 0})),
                         instructions(make(OP_POP, new int[0]))
                 ))),
                 of(new CompilerTestCase("""
@@ -612,7 +612,7 @@ class CompilerTest implements WithAssertions {
                                 instructions(make(OP_RETURN_VALUE, new int[0]))
                         )
                 ), List.of(
-                        instructions(make(OP_CONSTANT, new int[]{2})),
+                        instructions(make(OP_CLOSURE, new int[]{2, 0})),
                         instructions(make(OP_POP, new int[0]))
                 )))
         );
@@ -650,7 +650,7 @@ class CompilerTest implements WithAssertions {
                                 instructions(make(OP_RETURN_VALUE, new int[0]))
                         )
                 ), List.of(
-                        instructions(make(OP_CONSTANT, new int[]{0})),
+                        instructions(make(OP_CLOSURE, new int[]{0, 0})),
                         instructions(make(OP_POP, new int[0]))
                 )))
         );

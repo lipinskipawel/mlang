@@ -2,6 +2,7 @@ package com.github.lipinskipawel.mlang.vm;
 
 import com.github.lipinskipawel.mlang.code.OpCode;
 import com.github.lipinskipawel.mlang.compiler.Bytecode;
+import com.github.lipinskipawel.mlang.evaluator.objects.Closure;
 import com.github.lipinskipawel.mlang.evaluator.objects.CompilerFunction;
 import com.github.lipinskipawel.mlang.evaluator.objects.Hashable;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyArray;
@@ -57,7 +58,8 @@ public final class VirtualMachine {
         this.globals = globals;
 
         final var mainFn = compilerFunction(bytecode.instructions());
-        final var mainFrame = frame(mainFn, 0);
+        final var mainClosure = new Closure(mainFn);
+        final var mainFrame = frame(mainClosure, 0);
 
         this.frames = new Frame[MAX_FRAMES];
         this.frames[0] = mainFrame;
@@ -275,6 +277,16 @@ public final class VirtualMachine {
                         return error;
                     }
                 }
+                case OP_CLOSURE -> {
+                    final var constIndex = readShort(instructions.slice(instructionPointer + 1, instructions.bytes().length));
+                    final var __ = readByte(instructions.slice(instructionPointer + 1, instructions.bytes().length));
+                    currentFrame().incrementInstructionPointer(3);
+
+                    final var error = pushClosure(constIndex);
+                    if (error.isPresent()) {
+                        return error;
+                    }
+                }
             }
         }
 
@@ -284,20 +296,20 @@ public final class VirtualMachine {
     private Optional<Object> executeCall(int numArgs) {
         final var callee = stack[stackPointer - 1 - numArgs];
         return switch (callee.type()) {
-            case COMPILED_FUNCTION_OBJ -> callFunction((CompilerFunction) callee, numArgs);
+            case CLOSURE_OBJ -> callClosure((Closure) callee, numArgs);
             case BUILTIN_OBJ -> callBuiltin((MonkeyBuiltin) callee, numArgs);
             default -> of("calling non-function and non-built-in");
         };
     }
 
-    private Optional<Object> callFunction(CompilerFunction fn, int numArgs) {
-        if (numArgs != fn.numberOfParameters()) {
-            return of("wrong number of arguments want=%d, got=%d".formatted(fn.numberOfParameters(), numArgs));
+    private Optional<Object> callClosure(Closure closure, int numArgs) {
+        if (numArgs != closure.fn.numberOfParameters()) {
+            return of("wrong number of arguments want=%d, got=%d".formatted(closure.fn.numberOfParameters(), numArgs));
         }
-        final var newFrame = frame(fn, stackPointer - numArgs);
+        final var newFrame = frame(closure, stackPointer - numArgs);
         pushFrame(newFrame);
 
-        stackPointer = newFrame.basePointer() + fn.numberOfLocals();
+        stackPointer = newFrame.basePointer() + closure.fn.numberOfLocals();
         return empty();
     }
 
@@ -479,6 +491,15 @@ public final class VirtualMachine {
             case NULL_OBJ -> false;
             default -> true;
         };
+    }
+
+    private Optional<Object> pushClosure(int constIndex) {
+        final var constant = constants.get(constIndex);
+        if (constant instanceof CompilerFunction function) {
+            final var closure = new Closure(function);
+            return push(closure);
+        }
+        return of("not a function: %s".formatted(constant.getClass()));
     }
 
     private Optional<Object> push(MonkeyObject object) {

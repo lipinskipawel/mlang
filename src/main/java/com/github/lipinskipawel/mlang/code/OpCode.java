@@ -31,7 +31,8 @@ public enum OpCode {
     OP_RETURN((byte) 24),
     OP_GET_LOCAL((byte) 25),
     OP_SET_LOCAL((byte) 26),
-    OP_GET_BUILTIN((byte) 27);
+    OP_GET_BUILTIN((byte) 27),
+    OP_CLOSURE((byte) 28);
 
     final byte opCode;
 
@@ -69,7 +70,8 @@ public enum OpCode {
             entry(OP_RETURN, new Definition("OpReturn", new int[0])),
             entry(OP_GET_LOCAL, new Definition("OpGetLocal", new int[]{1})),
             entry(OP_SET_LOCAL, new Definition("OpSetLocal", new int[]{1})),
-            entry(OP_GET_BUILTIN, new Definition("OpGetBuiltin", new int[]{1}))
+            entry(OP_GET_BUILTIN, new Definition("OpGetBuiltin", new int[]{1})),
+            entry(OP_CLOSURE, new Definition("OpClosure", new int[]{2, 1})) // index of compiledFunction, num of free variables
     );
 
     public Definition definition() {
@@ -105,6 +107,7 @@ public enum OpCode {
             case 25 -> OP_GET_LOCAL;
             case 26 -> OP_SET_LOCAL;
             case 27 -> OP_GET_BUILTIN;
+            case 28 -> OP_CLOSURE;
             default -> throw new IllegalArgumentException("No opcode defined for [%s]".formatted(oneByte));
         };
     }
@@ -138,6 +141,7 @@ public enum OpCode {
             case 25 -> DEFINITIONS.get(OP_GET_LOCAL);
             case 26 -> DEFINITIONS.get(OP_SET_LOCAL);
             case 27 -> DEFINITIONS.get(OP_GET_BUILTIN);
+            case 28 -> DEFINITIONS.get(OP_CLOSURE);
             default -> throw new IllegalStateException("Unexpected value: " + op);
         };
     }

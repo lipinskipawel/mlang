@@ -13,7 +13,8 @@ public enum ObjectType {
     ARRAY_OBJ("ARRAY_OBJ"),
     HASH_OBJ("HASH_OBJ"),
 
-    COMPILED_FUNCTION_OBJ("COMPILED_FUNCTION_OBJ");
+    COMPILED_FUNCTION_OBJ("COMPILED_FUNCTION_OBJ"),
+    CLOSURE_OBJ("CLOSURE_OBJ");
 
     private final String name;
 

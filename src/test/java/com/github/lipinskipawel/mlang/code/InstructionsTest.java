@@ -16,6 +16,7 @@ import static com.github.lipinskipawel.mlang.code.Instructions.merge;
 import static com.github.lipinskipawel.mlang.code.Instructions.readOperands;
 import static com.github.lipinskipawel.mlang.code.Instructions.slice;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_ADD;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_CLOSURE;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_CONSTANT;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_GET_LOCAL;
 import static org.junit.jupiter.params.provider.Arguments.of;
@@ -23,19 +24,20 @@ import static org.junit.jupiter.params.provider.Arguments.of;
 @DisplayName("Instructions Spec")
 class InstructionsTest implements WithAssertions {
 
-    private static Stream<Arguments> singleInstruction() {
+    private static Stream<Arguments> makeInstruction() {
         return Stream.of(
                 of(OP_CONSTANT, new int[]{65534}, new byte[]{OP_CONSTANT.opCode, (byte) 255, (byte) 254}),
                 of(OP_CONSTANT, new int[]{0xFFFE}, new byte[]{OP_CONSTANT.opCode, (byte) 0xFF, (byte) 0xFE}),
                 of(OP_ADD, new int[0], new byte[]{OP_ADD.opCode}),
-                of(OP_GET_LOCAL, new int[]{255}, new byte[]{OP_GET_LOCAL.opCode, (byte) 255})
+                of(OP_GET_LOCAL, new int[]{255}, new byte[]{OP_GET_LOCAL.opCode, (byte) 255}),
+                of(OP_CLOSURE, new int[]{65534, 255}, new byte[]{OP_CLOSURE.opCode, (byte) 255, (byte) 254, (byte) 255})
         );
     }
 
     @ParameterizedTest
-    @MethodSource("singleInstruction")
-    @DisplayName("make single instruction")
-    void make_single_instruction(OpCode op, int[] operands, byte[] expected) {
+    @MethodSource("makeInstruction")
+    @DisplayName("make instruction")
+    void make_instruction(OpCode op, int[] operands, byte[] expected) {
         var instruction = make(op, operands);
 
         assertThat(instruction).satisfies(
@@ -51,7 +53,8 @@ class InstructionsTest implements WithAssertions {
     private static Stream<Arguments> readOperandsCases() {
         return Stream.of(
                 of(OP_CONSTANT, new int[]{65535}, 2),
-                of(OP_GET_LOCAL, new int[]{255}, 1)
+                of(OP_GET_LOCAL, new int[]{255}, 1),
+                of(OP_CLOSURE, new int[]{65534, 255}, 3)
         );
     }
 
@@ -77,12 +80,14 @@ class InstructionsTest implements WithAssertions {
                 0001 OpGetLocal 1
                 0003 OpConstant 2
                 0006 OpConstant 65535
+                0009 OpClosure 65535 255
                 """;
         var instructions = List.of(
                 instructions(make(OP_ADD, new int[0])),
                 instructions(make(OP_GET_LOCAL, new int[]{1})),
                 instructions(make(OP_CONSTANT, new int[]{2})),
-                instructions(make(OP_CONSTANT, new int[]{65535}))
+                instructions(make(OP_CONSTANT, new int[]{65535})),
+                instructions(make(OP_CLOSURE, new int[]{65535, 255}))
         );
 
         var allInstructions = merge(instructions);

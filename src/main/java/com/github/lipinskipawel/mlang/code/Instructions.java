@@ -159,6 +159,7 @@ public final class Instructions {
         return switch (operandCount) {
             case 0 -> definition.name();
             case 1 -> "%s %d".formatted(definition.name(), operands[0]);
+            case 2 -> "%s %d %d".formatted(definition.name(), operands[0], operands[1]);
             default -> "ERROR: unhandled operandCount for %s\n".formatted(definition.name());
         };
     }

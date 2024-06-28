@@ -1,26 +1,26 @@
 package com.github.lipinskipawel.mlang.vm;
 
 import com.github.lipinskipawel.mlang.code.Instructions;
-import com.github.lipinskipawel.mlang.evaluator.objects.CompilerFunction;
+import com.github.lipinskipawel.mlang.evaluator.objects.Closure;
 
 final class Frame {
 
-    private final CompilerFunction fn;
+    private final Closure closure;
     private int instructionPointer; // instruction pointer in this frame
     private int basePointer; // ip before we execute the function call
 
-    private Frame(CompilerFunction fn, int instructionPointer, int basePointer) {
-        this.fn = fn;
+    private Frame(Closure closure, int instructionPointer, int basePointer) {
+        this.closure = closure;
         this.instructionPointer = instructionPointer;
         this.basePointer = basePointer;
     }
 
-    public static Frame frame(CompilerFunction fn, int basePointer) {
+    public static Frame frame(Closure fn, int basePointer) {
         return new Frame(fn, -1, basePointer);
     }
 
     Instructions instructions() {
-        return fn.instructions();
+        return closure.fn.instructions();
     }
 
     int instructionPointer() {

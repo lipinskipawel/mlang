@@ -35,6 +35,7 @@ import static com.github.lipinskipawel.mlang.code.OpCode.OP_ADD;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_ARRAY;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_BANG;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_CALL;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_CLOSURE;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_CONSTANT;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_DIV;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_EQUAL;
@@ -304,7 +305,7 @@ public final class Compiler {
                 final var numberOfLocals = symbolTable.numDefinitions();
                 final var instructions = leaveScope();
                 final var compilerFunction = compilerFunction(instructions, numberOfLocals, functionLiteral.parameters().size());
-                emit(OP_CONSTANT, addConstant(compilerFunction));
+                emit(OP_CLOSURE, addConstant(compilerFunction));
             }
             case ReturnStatement returnStatement -> {
                 final var error = compile(returnStatement.returnValue());
