@@ -9,17 +9,20 @@ import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyString;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.ARRAY_OBJ;
 
 public final class Builtins {
-    private final List<Builtin> builtins = builtins();
+    private static final List<Builtin> builtins = initBuiltins();
 
-    public Builtins() {
+    private Builtins() {
     }
 
-    private List<Builtin> builtins() {
+    public static List<Builtin> builtins() {
+        return builtins;
+    }
+
+    private static List<Builtin> initBuiltins() {
         return List.of(
                 new Builtin("len", new MonkeyBuiltin() {
                     @Override
@@ -114,13 +117,6 @@ public final class Builtins {
                     }
                 })
         );
-    }
-
-    public Optional<MonkeyBuiltin> findBuiltIn(String builtInFunction) {
-        return builtins.stream()
-                .filter(it -> it.name().equals(builtInFunction))
-                .map(Builtin::builtin)
-                .findFirst();
     }
 
     private static MonkeyError newError(String message, Object... object) {

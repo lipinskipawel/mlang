@@ -28,6 +28,7 @@ import static com.github.lipinskipawel.mlang.code.OpCode.OP_CONSTANT;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_DIV;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_EQUAL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_FALSE;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_GET_BUILTIN;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_GET_GLOBAL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_GET_LOCAL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_GREATER_THAN;
@@ -620,6 +621,45 @@ class CompilerTest implements WithAssertions {
     @ParameterizedTest
     @MethodSource("letStatementScopes")
     void let_statement_scopes(CompilerTestCase compilerTestCase) {
+        runCompiler(compilerTestCase);
+    }
+
+    private static Stream<Arguments> builtinFunctions() {
+        return Stream.of(
+                of(new CompilerTestCase("""
+                        len([]);
+                        push([], 1);
+                        """, List.of(1), List.of(
+                        instructions(make(OP_GET_BUILTIN, new int[]{0})),
+                        instructions(make(OP_ARRAY, new int[]{0})),
+                        instructions(make(OP_CALL, new int[]{1})),
+                        instructions(make(OP_POP, new int[0])),
+                        instructions(make(OP_GET_BUILTIN, new int[]{5})),
+                        instructions(make(OP_ARRAY, new int[]{0})),
+                        instructions(make(OP_CONSTANT, new int[]{0})),
+                        instructions(make(OP_CALL, new int[]{2})),
+                        instructions(make(OP_POP, new int[0]))
+                ))),
+                of(new CompilerTestCase("""
+                        fn() { len([]) }
+                        """, List.of(
+                        List.of(
+                                instructions(make(OP_GET_BUILTIN, new int[]{0})),
+                                instructions(make(OP_ARRAY, new int[]{0})),
+                                instructions(make(OP_CALL, new int[]{1})),
+                                instructions(make(OP_RETURN_VALUE, new int[0]))
+                        )
+                ), List.of(
+                        instructions(make(OP_CONSTANT, new int[]{0})),
+                        instructions(make(OP_POP, new int[0]))
+                )))
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("builtinFunctions")
+    @DisplayName("builtin functions")
+    void builtin_functions(CompilerTestCase compilerTestCase) {
         runCompiler(compilerTestCase);
     }
 

@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
+import static com.github.lipinskipawel.mlang.compiler.SymbolTable.SymbolScope.BUILTIN_SCOPE;
 import static com.github.lipinskipawel.mlang.compiler.SymbolTable.SymbolScope.GLOBAL_SCOPE;
 import static com.github.lipinskipawel.mlang.compiler.SymbolTable.SymbolScope.LOCAL_SCOPE;
 import static java.util.Objects.requireNonNull;
@@ -13,7 +14,8 @@ import static java.util.Optional.ofNullable;
 public class SymbolTable {
     public enum SymbolScope {
         GLOBAL_SCOPE("GLOBAL"),
-        LOCAL_SCOPE("LOCAL");
+        LOCAL_SCOPE("LOCAL"),
+        BUILTIN_SCOPE("BUILTIN");
         private final String scope;
 
         SymbolScope(String scope) {
@@ -43,18 +45,24 @@ public class SymbolTable {
         return table;
     }
 
-    public Symbol define(String identifier) {
+    public Symbol defineBuiltin(int index, String name) {
+        final var symbol = new Symbol(name, BUILTIN_SCOPE, index);
+        store.put(name, symbol);
+        return symbol;
+    }
+
+    public Symbol define(String name) {
         final var scope = outer == null ? GLOBAL_SCOPE : LOCAL_SCOPE;
-        final var symbol = new Symbol(identifier, scope, numDefinitions);
-        store.put(identifier, symbol);
+        final var symbol = new Symbol(name, scope, numDefinitions);
+        store.put(name, symbol);
         numDefinitions++;
         return symbol;
     }
 
-    public Optional<Symbol> resolve(String identifier) {
-        final var symbol = store.get(identifier);
+    public Optional<Symbol> resolve(String name) {
+        final var symbol = store.get(name);
         if (symbol == null && outer != null) {
-            return outer.resolve(identifier);
+            return outer.resolve(name);
         }
         return ofNullable(symbol);
     }

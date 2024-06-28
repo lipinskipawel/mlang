@@ -2,6 +2,7 @@ package com.github.lipinskipawel.mlang.compiler;
 
 import com.github.lipinskipawel.mlang.code.Instructions;
 import com.github.lipinskipawel.mlang.code.OpCode;
+import com.github.lipinskipawel.mlang.compiler.SymbolTable.Symbol;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyInteger;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyObject;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyString;
@@ -38,6 +39,7 @@ import static com.github.lipinskipawel.mlang.code.OpCode.OP_CONSTANT;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_DIV;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_EQUAL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_FALSE;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_GET_BUILTIN;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_GET_GLOBAL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_GET_LOCAL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_GREATER_THAN;
@@ -61,6 +63,7 @@ import static com.github.lipinskipawel.mlang.compiler.SymbolTable.SymbolScope.GL
 import static com.github.lipinskipawel.mlang.compiler.SymbolTable.enclosedSymbolTable;
 import static com.github.lipinskipawel.mlang.compiler.SymbolTable.symbolTable;
 import static com.github.lipinskipawel.mlang.evaluator.objects.CompilerFunction.compilerFunction;
+import static com.github.lipinskipawel.mlang.object.Builtins.builtins;
 import static java.util.Comparator.comparing;
 import static java.util.Objects.requireNonNull;
 import static java.util.Optional.empty;
@@ -81,7 +84,14 @@ public final class Compiler {
     }
 
     public static Compiler compiler() {
-        return compiler(new ArrayList<>(), symbolTable());
+        final var symbolTable = symbolTable();
+
+        final var builtins = builtins();
+        for (var i = 0; i < builtins.size(); i++) {
+            symbolTable.defineBuiltin(i, builtins.get(i).name());
+        }
+
+        return compiler(new ArrayList<>(), symbolTable);
     }
 
     public static Compiler compiler(List<MonkeyObject> constants, SymbolTable symbolTable) {
@@ -112,15 +122,11 @@ public final class Compiler {
                 }
             }
             case Identifier identifier -> {
-                final var resolve = symbolTable.resolve(identifier.value());
-                if (resolve.isEmpty()) {
+                final var symbol = symbolTable.resolve(identifier.value());
+                if (symbol.isEmpty()) {
                     return of("undefined variable [%s]".formatted(identifier.value()));
                 }
-                if (resolve.get().scope() == GLOBAL_SCOPE) {
-                    emit(OP_GET_GLOBAL, resolve.get().index());
-                } else {
-                    emit(OP_GET_LOCAL, resolve.get().index());
-                }
+                loadSymbol(symbol.get());
             }
             case ExpressionStatement statement -> {
                 final var result = compile(statement.expression());
@@ -383,6 +389,14 @@ public final class Compiler {
         symbolTable = symbolTable.outer;
 
         return instructions;
+    }
+
+    private void loadSymbol(Symbol symbol) {
+        switch (symbol.scope()) {
+            case GLOBAL_SCOPE -> emit(OP_GET_GLOBAL, symbol.index());
+            case LOCAL_SCOPE -> emit(OP_GET_LOCAL, symbol.index());
+            case BUILTIN_SCOPE -> emit(OP_GET_BUILTIN, symbol.index());
+        }
     }
 
     // here we can write to file or to collections

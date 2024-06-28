@@ -1,26 +1,21 @@
 package com.github.lipinskipawel.mlang.evaluator.builtin;
 
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyBuiltin;
-import com.github.lipinskipawel.mlang.object.Builtins;
 
 import java.util.Map;
 import java.util.Optional;
 
+import static com.github.lipinskipawel.mlang.object.Builtins.builtins;
 import static java.util.Optional.ofNullable;
+import static java.util.stream.Collectors.toMap;
 
 public final class Builtin {
-    private static final Builtins builtins = new Builtins();
-
-    private static final Map<String, MonkeyBuiltin> builtinsMap = Map.of(
-            "len", builtins.findBuiltIn("len").orElseThrow(),
-            "first", builtins.findBuiltIn("first").orElseThrow(),
-            "last", builtins.findBuiltIn("last").orElseThrow(),
-            "rest", builtins.findBuiltIn("rest").orElseThrow(),
-            "push", builtins.findBuiltIn("push").orElseThrow(),
-            "puts", builtins.findBuiltIn("puts").orElseThrow()
-    );
+    private static final Map<String, MonkeyBuiltin> builtins = builtins()
+            .stream()
+            .map(it -> Map.entry(it.name(), it.builtin()))
+            .collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
 
     public static Optional<MonkeyBuiltin> findBuiltIn(String builtInFunction) {
-        return ofNullable(builtinsMap.get(builtInFunction));
+        return ofNullable(builtins.get(builtInFunction));
     }
 }

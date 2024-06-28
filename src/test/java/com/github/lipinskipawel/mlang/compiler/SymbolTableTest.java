@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
+import static com.github.lipinskipawel.mlang.compiler.SymbolTable.SymbolScope.BUILTIN_SCOPE;
 import static com.github.lipinskipawel.mlang.compiler.SymbolTable.SymbolScope.GLOBAL_SCOPE;
 import static com.github.lipinskipawel.mlang.compiler.SymbolTable.SymbolScope.LOCAL_SCOPE;
 import static com.github.lipinskipawel.mlang.compiler.SymbolTable.enclosedSymbolTable;
@@ -117,6 +118,32 @@ class SymbolTableTest implements WithAssertions {
                 var actual = test.table.resolve(symbol.name());
                 assertThat(actual).isPresent();
                 assertThat(actual.get()).isEqualTo(symbol);
+            }
+        }
+    }
+
+    @Test
+    void defineResolveBuiltins() {
+        var global = symbolTable();
+        var firstLocal = enclosedSymbolTable(global);
+        var secondLocal = enclosedSymbolTable(firstLocal);
+
+        var expectedList = List.of(
+                new Symbol("a", BUILTIN_SCOPE, 0),
+                new Symbol("c", BUILTIN_SCOPE, 1),
+                new Symbol("e", BUILTIN_SCOPE, 2),
+                new Symbol("f", BUILTIN_SCOPE, 3)
+        );
+
+        for (var i = 0; i < expectedList.size(); i++) {
+            global.defineBuiltin(i, expectedList.get(i).name());
+        }
+
+        for (var table : List.of(global, firstLocal, secondLocal)) {
+            for (var expected : expectedList) {
+                var actual = table.resolve(expected.name());
+                assertThat(actual).isPresent();
+                assertThat(actual.get()).isEqualTo(expected);
             }
         }
     }
