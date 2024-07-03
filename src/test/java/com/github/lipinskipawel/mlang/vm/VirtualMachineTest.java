@@ -514,6 +514,54 @@ class VirtualMachineTest implements WithAssertions {
         runVirtualMachineTest(vmTestCase);
     }
 
+    private static Stream<Arguments> recursiveFunctions() {
+        return Stream.of(
+                of(new VmTestCase("""
+                        let countDown = fn(x) {
+                          if (x == 0) {
+                            return 0;
+                          } else {
+                            return countDown(x - 1);
+                          }
+                        };
+                        countDown(1);
+                        """, 0)),
+                of(new VmTestCase("""
+                        let countDown = fn(x) {
+                            if (x == 0) {
+                                return 0;
+                            } else {
+                                countDown(x - 1);
+                            }
+                        };
+                        let wrapper = fn() {
+                            countDown(1);
+                        };
+                        wrapper();
+                        """, 0)),
+                of(new VmTestCase("""
+                        let wrapper = fn() {
+                            let countDown = fn(x) {
+                                if (x == 0) {
+                                    return 0;
+                                } else {
+                                    countDown(x - 1);
+                                }
+                            };
+                            countDown(1);
+                        };
+                        wrapper();
+                        """, 0))
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("recursiveFunctions")
+    @DisplayName("recursive functions")
+    void recursive_functions(VmTestCase vmTestCase) {
+        runVirtualMachineTest(vmTestCase);
+    }
+
     private void runVirtualMachineTest(VmTestCase vmTestCase) {
         var program = parse(vmTestCase.input());
 

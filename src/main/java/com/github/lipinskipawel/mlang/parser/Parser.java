@@ -1,5 +1,8 @@
 package com.github.lipinskipawel.mlang.parser;
 
+import com.github.lipinskipawel.mlang.lexer.Lexer;
+import com.github.lipinskipawel.mlang.lexer.token.Token;
+import com.github.lipinskipawel.mlang.lexer.token.TokenType;
 import com.github.lipinskipawel.mlang.parser.ast.Program;
 import com.github.lipinskipawel.mlang.parser.ast.expression.ArrayLiteral;
 import com.github.lipinskipawel.mlang.parser.ast.expression.BooleanExpression;
@@ -19,9 +22,6 @@ import com.github.lipinskipawel.mlang.parser.ast.statement.ExpressionStatement;
 import com.github.lipinskipawel.mlang.parser.ast.statement.LetStatement;
 import com.github.lipinskipawel.mlang.parser.ast.statement.ReturnStatement;
 import com.github.lipinskipawel.mlang.parser.ast.statement.Statement;
-import com.github.lipinskipawel.mlang.lexer.Lexer;
-import com.github.lipinskipawel.mlang.lexer.token.Token;
-import com.github.lipinskipawel.mlang.lexer.token.TokenType;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -30,14 +30,6 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import static com.github.lipinskipawel.mlang.parser.Precedence.CALL;
-import static com.github.lipinskipawel.mlang.parser.Precedence.EQUALS;
-import static com.github.lipinskipawel.mlang.parser.Precedence.INDEX;
-import static com.github.lipinskipawel.mlang.parser.Precedence.LESSGREATER;
-import static com.github.lipinskipawel.mlang.parser.Precedence.LOWEST;
-import static com.github.lipinskipawel.mlang.parser.Precedence.PREFIX;
-import static com.github.lipinskipawel.mlang.parser.Precedence.PRODUCT;
-import static com.github.lipinskipawel.mlang.parser.Precedence.SUM;
 import static com.github.lipinskipawel.mlang.lexer.token.TokenType.ASSIGN;
 import static com.github.lipinskipawel.mlang.lexer.token.TokenType.ASTERISK;
 import static com.github.lipinskipawel.mlang.lexer.token.TokenType.BANG;
@@ -66,6 +58,14 @@ import static com.github.lipinskipawel.mlang.lexer.token.TokenType.SEMICOLON;
 import static com.github.lipinskipawel.mlang.lexer.token.TokenType.SLASH;
 import static com.github.lipinskipawel.mlang.lexer.token.TokenType.STRING;
 import static com.github.lipinskipawel.mlang.lexer.token.TokenType.TRUE;
+import static com.github.lipinskipawel.mlang.parser.Precedence.CALL;
+import static com.github.lipinskipawel.mlang.parser.Precedence.EQUALS;
+import static com.github.lipinskipawel.mlang.parser.Precedence.INDEX;
+import static com.github.lipinskipawel.mlang.parser.Precedence.LESSGREATER;
+import static com.github.lipinskipawel.mlang.parser.Precedence.LOWEST;
+import static com.github.lipinskipawel.mlang.parser.Precedence.PREFIX;
+import static com.github.lipinskipawel.mlang.parser.Precedence.PRODUCT;
+import static com.github.lipinskipawel.mlang.parser.Precedence.SUM;
 import static java.lang.Integer.parseInt;
 
 public final class Parser {
@@ -164,6 +164,10 @@ public final class Parser {
 
         final var value = parseExpression(LOWEST);
         letStatement.value(value);
+
+        if (letStatement.value() instanceof FunctionLiteral functionLiteral) {
+            functionLiteral.name(letStatement.name.value());
+        }
 
         if (peekTokenIs(SEMICOLON)) {
             nextToken();

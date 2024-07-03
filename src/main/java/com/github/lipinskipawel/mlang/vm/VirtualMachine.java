@@ -297,6 +297,14 @@ public final class VirtualMachine {
                         return error;
                     }
                 }
+                case OP_CURRENT_CLOSURE -> {
+                    final var currentClosure = currentFrame().closure;
+
+                    final var error = push(currentClosure);
+                    if (error.isPresent()) {
+                        return error;
+                    }
+                }
             }
         }
 

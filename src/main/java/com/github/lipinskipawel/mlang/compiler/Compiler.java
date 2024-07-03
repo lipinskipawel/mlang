@@ -37,6 +37,7 @@ import static com.github.lipinskipawel.mlang.code.OpCode.OP_BANG;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_CALL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_CLOSURE;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_CONSTANT;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_CURRENT_CLOSURE;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_DIV;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_EQUAL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_FALSE;
@@ -111,12 +112,12 @@ public final class Compiler {
                 }
             }
             case LetStatement letStatement -> {
+                final var symbol = symbolTable.define(letStatement.name().value());
                 final var error = compile(letStatement.value());
                 if (error.isPresent()) {
                     return error;
                 }
 
-                final var symbol = symbolTable.define(letStatement.name().value());
                 if (symbol.scope() == GLOBAL_SCOPE) {
                     emit(OP_SET_GLOBAL, symbol.index());
                 } else {
@@ -287,6 +288,8 @@ public final class Compiler {
             case FunctionLiteral functionLiteral -> {
                 enterScope();
 
+                functionLiteral.name().ifPresent(symbolTable::defineFunctionName);
+
                 for (var param : functionLiteral.parameters()) {
                     symbolTable.define(param.value());
                 }
@@ -404,6 +407,7 @@ public final class Compiler {
             case LOCAL_SCOPE -> emit(OP_GET_LOCAL, symbol.index());
             case BUILTIN_SCOPE -> emit(OP_GET_BUILTIN, symbol.index());
             case FREE_SCOPE -> emit(OP_GET_FREE, symbol.index());
+            case FUNCTION_SCOPE -> emit(OP_CURRENT_CLOSURE);
         }
     }
 

@@ -1,5 +1,7 @@
 package com.github.lipinskipawel.mlang.parser;
 
+import com.github.lipinskipawel.mlang.lexer.token.Token;
+import com.github.lipinskipawel.mlang.lexer.token.TokenType;
 import com.github.lipinskipawel.mlang.parser.ast.expression.ArrayLiteral;
 import com.github.lipinskipawel.mlang.parser.ast.expression.BooleanExpression;
 import com.github.lipinskipawel.mlang.parser.ast.expression.CallExpression;
@@ -17,8 +19,6 @@ import com.github.lipinskipawel.mlang.parser.ast.statement.ExpressionStatement;
 import com.github.lipinskipawel.mlang.parser.ast.statement.LetStatement;
 import com.github.lipinskipawel.mlang.parser.ast.statement.ReturnStatement;
 import com.github.lipinskipawel.mlang.parser.ast.statement.Statement;
-import com.github.lipinskipawel.mlang.lexer.token.Token;
-import com.github.lipinskipawel.mlang.lexer.token.TokenType;
 import org.assertj.core.api.WithAssertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -30,9 +30,9 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
-import static com.github.lipinskipawel.mlang.parser.ast.Program.givenProgram;
 import static com.github.lipinskipawel.mlang.lexer.Lexer.lexer;
 import static com.github.lipinskipawel.mlang.lexer.token.TokenType.IDENT;
+import static com.github.lipinskipawel.mlang.parser.ast.Program.givenProgram;
 import static java.util.Collections.emptyList;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
@@ -733,6 +733,30 @@ final class ParserTest implements WithAssertions {
                     }
             );
         }
+    }
+
+    @Test
+    void function_literal_with_name() {
+        var input = "let myFunction = fn() {};";
+
+        var lexer = lexer(input);
+        var parser = new Parser(lexer);
+        var program = parser.parseProgram();
+        checkParseErrors(parser);
+
+        assertThat(program.programStatements()).hasSize(1);
+        assertThat(program.programStatements().get(0)).satisfies(it -> {
+            if (it instanceof LetStatement letStatement) {
+                if (letStatement.value() instanceof FunctionLiteral functionLiteral) {
+                    assertThat(functionLiteral.name()).isPresent();
+                    assertThat(functionLiteral.name().get()).isEqualTo("myFunction");
+                } else {
+                    fail("must be FunctionLiteral");
+                }
+            } else {
+                fail("must be LetStatement");
+            }
+        });
     }
 
     private void testInfixExpression(Expression expression, Object left, String operator, Object right) {

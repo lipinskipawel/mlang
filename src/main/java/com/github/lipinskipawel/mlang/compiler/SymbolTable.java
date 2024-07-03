@@ -9,6 +9,7 @@ import java.util.Optional;
 
 import static com.github.lipinskipawel.mlang.compiler.SymbolTable.SymbolScope.BUILTIN_SCOPE;
 import static com.github.lipinskipawel.mlang.compiler.SymbolTable.SymbolScope.FREE_SCOPE;
+import static com.github.lipinskipawel.mlang.compiler.SymbolTable.SymbolScope.FUNCTION_SCOPE;
 import static com.github.lipinskipawel.mlang.compiler.SymbolTable.SymbolScope.GLOBAL_SCOPE;
 import static com.github.lipinskipawel.mlang.compiler.SymbolTable.SymbolScope.LOCAL_SCOPE;
 import static java.util.Objects.requireNonNull;
@@ -21,7 +22,8 @@ public class SymbolTable {
         GLOBAL_SCOPE,
         LOCAL_SCOPE,
         BUILTIN_SCOPE,
-        FREE_SCOPE;
+        FREE_SCOPE,
+        FUNCTION_SCOPE;
     }
 
     public record Symbol(String name, SymbolScope scope, int index) {
@@ -54,6 +56,12 @@ public class SymbolTable {
         final var symbol = new Symbol(original.name, FREE_SCOPE, freeSymbols.size() - 1);
 
         store.put(original.name, symbol);
+        return symbol;
+    }
+
+    public Symbol defineFunctionName(String name) {
+        final var symbol = new Symbol(name, FUNCTION_SCOPE, 0);
+        store.put(name, symbol);
         return symbol;
     }
 

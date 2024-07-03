@@ -26,6 +26,7 @@ import static com.github.lipinskipawel.mlang.code.OpCode.OP_BANG;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_CALL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_CLOSURE;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_CONSTANT;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_CURRENT_CLOSURE;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_DIV;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_EQUAL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_FALSE;
@@ -775,6 +776,72 @@ class CompilerTest implements WithAssertions {
     @MethodSource("closures")
     @DisplayName("closure")
     void closures(CompilerTestCase compilerTestCase) {
+        runCompiler(compilerTestCase);
+    }
+
+    private static Stream<Arguments> recursiveFunctions() {
+        return Stream.of(
+                of(new CompilerTestCase("""
+                        let countDown = fn(x) { countDown(x - 1); };
+                        countDown(1);
+                        """, List.of(
+                        1,
+                        List.of(
+                                instructions(make(OP_CURRENT_CLOSURE, new int[0])),
+                                instructions(make(OP_GET_LOCAL, new int[]{0})),
+                                instructions(make(OP_CONSTANT, new int[]{0})),
+                                instructions(make(OP_SUB, new int[0])),
+                                instructions(make(OP_CALL, new int[]{1})),
+                                instructions(make(OP_RETURN_VALUE, new int[0]))
+                        ),
+                        1
+                ), List.of(
+                        instructions(make(OP_CLOSURE, new int[]{1, 0})),
+                        instructions(make(OP_SET_GLOBAL, new int[]{0})),
+                        instructions(make(OP_GET_GLOBAL, new int[]{0})),
+                        instructions(make(OP_CONSTANT, new int[]{2})),
+                        instructions(make(OP_CALL, new int[]{1})),
+                        instructions(make(OP_POP, new int[0]))
+                ))),
+                of(new CompilerTestCase("""
+                        let wrapper = fn() {
+                            let countDown = fn(x) { countDown(x - 1); };
+                            countDown(1);
+                        };
+                        wrapper();
+                        """, List.of(
+                        1,
+                        List.of(
+                                instructions(make(OP_CURRENT_CLOSURE, new int[0])),
+                                instructions(make(OP_GET_LOCAL, new int[]{0})),
+                                instructions(make(OP_CONSTANT, new int[]{0})),
+                                instructions(make(OP_SUB, new int[0])),
+                                instructions(make(OP_CALL, new int[]{1})),
+                                instructions(make(OP_RETURN_VALUE, new int[0]))
+                        ),
+                        1,
+                        List.of(
+                                instructions(make(OP_CLOSURE, new int[]{1, 0})),
+                                instructions(make(OP_SET_LOCAL, new int[]{0})),
+                                instructions(make(OP_GET_LOCAL, new int[]{0})),
+                                instructions(make(OP_CONSTANT, new int[]{2})),
+                                instructions(make(OP_CALL, new int[]{1})),
+                                instructions(make(OP_RETURN_VALUE, new int[0]))
+                        )
+                ), List.of(
+                        instructions(make(OP_CLOSURE, new int[]{3, 0})),
+                        instructions(make(OP_SET_GLOBAL, new int[]{0})),
+                        instructions(make(OP_GET_GLOBAL, new int[]{0})),
+                        instructions(make(OP_CALL, new int[]{0})),
+                        instructions(make(OP_POP, new int[0]))
+                )))
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("recursiveFunctions")
+    @DisplayName("recursive functions")
+    void recursive_functions(CompilerTestCase compilerTestCase) {
         runCompiler(compilerTestCase);
     }
 

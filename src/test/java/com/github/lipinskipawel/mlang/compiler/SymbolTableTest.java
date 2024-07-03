@@ -8,6 +8,7 @@ import java.util.List;
 
 import static com.github.lipinskipawel.mlang.compiler.SymbolTable.SymbolScope.BUILTIN_SCOPE;
 import static com.github.lipinskipawel.mlang.compiler.SymbolTable.SymbolScope.FREE_SCOPE;
+import static com.github.lipinskipawel.mlang.compiler.SymbolTable.SymbolScope.FUNCTION_SCOPE;
 import static com.github.lipinskipawel.mlang.compiler.SymbolTable.SymbolScope.GLOBAL_SCOPE;
 import static com.github.lipinskipawel.mlang.compiler.SymbolTable.SymbolScope.LOCAL_SCOPE;
 import static com.github.lipinskipawel.mlang.compiler.SymbolTable.enclosedSymbolTable;
@@ -240,5 +241,30 @@ class SymbolTableTest implements WithAssertions {
             var actual = secondLocal.resolve(name);
             assertThat(actual).isEmpty();
         }
+    }
+
+    @Test
+    void define_and_resolve_function_name() {
+        var global = symbolTable();
+        global.defineFunctionName("a");
+
+        var expected = new Symbol("a", FUNCTION_SCOPE, 0);
+
+        var actual = global.resolve("a");
+        assertThat(actual).isPresent();
+        assertThat(actual.get()).isEqualTo(expected);
+    }
+
+    @Test
+    void shadowing_function_name() {
+        var global = symbolTable();
+        global.defineFunctionName("a");
+        global.define("a");
+
+        var expected = new Symbol("a", GLOBAL_SCOPE, 0);
+
+        var actual = global.resolve("a");
+        assertThat(actual).isPresent();
+        assertThat(actual.get()).isEqualTo(expected);
     }
 }
