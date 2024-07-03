@@ -7,10 +7,15 @@ import static java.util.Objects.requireNonNull;
 
 public final class Closure extends MonkeyObject {
     public final CompilerFunction fn;
-    private MonkeyObject[] freeVariables;
+    public MonkeyObject[] freeVariables;
 
     public Closure(CompilerFunction fn) {
         this.fn = requireNonNull(fn);
+    }
+
+    public Closure(CompilerFunction fn, MonkeyObject[] freeVariables) {
+        this.fn = requireNonNull(fn);
+        this.freeVariables = requireNonNull(freeVariables);
     }
 
     @Override

@@ -5,9 +5,9 @@ import com.github.lipinskipawel.mlang.evaluator.objects.Closure;
 
 final class Frame {
 
-    private final Closure closure;
     private int instructionPointer; // instruction pointer in this frame
     private int basePointer; // ip before we execute the function call
+    public final Closure closure;
 
     private Frame(Closure closure, int instructionPointer, int basePointer) {
         this.closure = closure;

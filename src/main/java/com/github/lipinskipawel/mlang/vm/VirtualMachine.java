@@ -279,10 +279,20 @@ public final class VirtualMachine {
                 }
                 case OP_CLOSURE -> {
                     final var constIndex = readShort(instructions.slice(instructionPointer + 1, instructions.bytes().length));
-                    final var __ = readByte(instructions.slice(instructionPointer + 1, instructions.bytes().length));
+                    final var numFree = readByte(instructions.slice(instructionPointer + 3, instructions.bytes().length));
                     currentFrame().incrementInstructionPointer(3);
 
-                    final var error = pushClosure(constIndex);
+                    final var error = pushClosure(constIndex, numFree);
+                    if (error.isPresent()) {
+                        return error;
+                    }
+                }
+                case OP_GET_FREE -> {
+                    final var freeIndex = readByte(instructions.slice(instructionPointer + 1, instructions.bytes().length));
+                    currentFrame().incrementInstructionPointer();
+
+                    final var currentClosure = currentFrame().closure;
+                    final var error = push(currentClosure.freeVariables[freeIndex]);
                     if (error.isPresent()) {
                         return error;
                     }
@@ -493,10 +503,16 @@ public final class VirtualMachine {
         };
     }
 
-    private Optional<Object> pushClosure(int constIndex) {
+    private Optional<Object> pushClosure(int constIndex, int numFree) {
         final var constant = constants.get(constIndex);
         if (constant instanceof CompilerFunction function) {
-            final var closure = new Closure(function);
+
+            final var free = iterate(0, i -> i < numFree, i -> i + 1)
+                    .map(it -> stack[stackPointer - numFree + it])
+                    .toArray(MonkeyObject[]::new);
+            stackPointer -= numFree;
+
+            final var closure = new Closure(function, free);
             return push(closure);
         }
         return of("not a function: %s".formatted(constant.getClass()));
