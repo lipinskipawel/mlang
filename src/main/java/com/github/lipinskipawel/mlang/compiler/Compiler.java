@@ -41,6 +41,7 @@ import static com.github.lipinskipawel.mlang.code.OpCode.OP_DIV;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_EQUAL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_FALSE;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_GET_BUILTIN;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_GET_FREE;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_GET_GLOBAL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_GET_LOCAL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_GREATER_THAN;
@@ -302,10 +303,15 @@ public final class Compiler {
                     emit(OP_RETURN);
                 }
 
+                final var freeSymbols = symbolTable.freeSymbols;
                 final var numberOfLocals = symbolTable.numDefinitions();
                 final var instructions = leaveScope();
+
+                freeSymbols.forEach(this::loadSymbol);
+
                 final var compilerFunction = compilerFunction(instructions, numberOfLocals, functionLiteral.parameters().size());
-                emit(OP_CLOSURE, addConstant(compilerFunction));
+                final var fnIndex = addConstant(compilerFunction);
+                emit(OP_CLOSURE, fnIndex, freeSymbols.size());
             }
             case ReturnStatement returnStatement -> {
                 final var error = compile(returnStatement.returnValue());
@@ -397,6 +403,7 @@ public final class Compiler {
             case GLOBAL_SCOPE -> emit(OP_GET_GLOBAL, symbol.index());
             case LOCAL_SCOPE -> emit(OP_GET_LOCAL, symbol.index());
             case BUILTIN_SCOPE -> emit(OP_GET_BUILTIN, symbol.index());
+            case FREE_SCOPE -> emit(OP_GET_FREE, symbol.index());
         }
     }
 

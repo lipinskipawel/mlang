@@ -30,6 +30,7 @@ import static com.github.lipinskipawel.mlang.code.OpCode.OP_DIV;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_EQUAL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_FALSE;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_GET_BUILTIN;
+import static com.github.lipinskipawel.mlang.code.OpCode.OP_GET_FREE;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_GET_GLOBAL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_GET_LOCAL;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_GREATER_THAN;
@@ -660,6 +661,120 @@ class CompilerTest implements WithAssertions {
     @MethodSource("builtinFunctions")
     @DisplayName("builtin functions")
     void builtin_functions(CompilerTestCase compilerTestCase) {
+        runCompiler(compilerTestCase);
+    }
+
+    private static Stream<Arguments> closures() {
+        return Stream.of(
+                of(new CompilerTestCase("""
+                        fn(a) {
+                          fn(b) {
+                            a + b
+                          }
+                        }
+                        """, List.of(
+                        List.of(
+                                instructions(make(OP_GET_FREE, new int[]{0})),
+                                instructions(make(OP_GET_LOCAL, new int[]{0})),
+                                instructions(make(OP_ADD, new int[0])),
+                                instructions(make(OP_RETURN_VALUE, new int[0]))
+                        ),
+                        List.of(
+                                instructions(make(OP_GET_LOCAL, new int[]{0})),
+                                instructions(make(OP_CLOSURE, new int[]{0, 1})),
+                                instructions(make(OP_RETURN_VALUE, new int[0]))
+                        )
+                ), List.of(
+                        instructions(make(OP_CLOSURE, new int[]{1, 0})),
+                        instructions(make(OP_POP, new int[0]))
+                ))),
+                of(new CompilerTestCase("""
+                        fn(a) {
+                          fn(b) {
+                            fn(c) {
+                              a + b + c
+                            }
+                          }
+                        }
+                        """, List.of(
+                        List.of(
+                                instructions(make(OP_GET_FREE, new int[]{0})),
+                                instructions(make(OP_GET_FREE, new int[]{1})),
+                                instructions(make(OP_ADD, new int[0])),
+                                instructions(make(OP_GET_LOCAL, new int[]{0})),
+                                instructions(make(OP_ADD, new int[0])),
+                                instructions(make(OP_RETURN_VALUE, new int[0]))
+                        ),
+                        List.of(
+                                instructions(make(OP_GET_FREE, new int[]{0})),
+                                instructions(make(OP_GET_LOCAL, new int[]{0})),
+                                instructions(make(OP_CLOSURE, new int[]{0, 2})),
+                                instructions(make(OP_RETURN_VALUE, new int[0]))
+                        ),
+                        List.of(
+                                instructions(make(OP_GET_LOCAL, new int[]{0})),
+                                instructions(make(OP_CLOSURE, new int[]{1, 1})),
+                                instructions(make(OP_RETURN_VALUE, new int[0]))
+                        )
+                ), List.of(
+                        instructions(make(OP_CLOSURE, new int[]{2, 0})),
+                        instructions(make(OP_POP, new int[0]))
+                ))),
+                of(new CompilerTestCase("""
+                        let global = 55;
+
+                        fn() {
+                            let a = 66;
+                            fn() {
+                                let b = 77;
+                                fn() {
+                                    let c = 88;
+                                    global + a + b + c;
+                                }
+                            }
+                        }
+                        """, List.of(
+                        55, 66, 77, 88,
+                        List.of(
+                                instructions(make(OP_CONSTANT, new int[]{3})),
+                                instructions(make(OP_SET_LOCAL, new int[]{0})),
+                                instructions(make(OP_GET_GLOBAL, new int[]{0})),
+                                instructions(make(OP_GET_FREE, new int[]{0})),
+                                instructions(make(OP_ADD, new int[0])),
+                                instructions(make(OP_GET_FREE, new int[]{1})),
+                                instructions(make(OP_ADD, new int[0])),
+                                instructions(make(OP_GET_LOCAL, new int[]{0})),
+                                instructions(make(OP_ADD, new int[0])),
+                                instructions(make(OP_RETURN_VALUE, new int[0]))
+                        ),
+                        List.of(
+                                instructions(make(OP_CONSTANT, new int[]{2})),
+                                instructions(make(OP_SET_LOCAL, new int[]{0})),
+                                instructions(make(OP_GET_FREE, new int[]{0})),
+                                instructions(make(OP_GET_LOCAL, new int[]{0})),
+                                instructions(make(OP_CLOSURE, new int[]{4, 2})),
+                                instructions(make(OP_RETURN_VALUE, new int[0]))
+                        ),
+                        List.of(
+                                instructions(make(OP_CONSTANT, new int[]{1})),
+                                instructions(make(OP_SET_LOCAL, new int[]{0})),
+                                instructions(make(OP_GET_LOCAL, new int[]{0})),
+                                instructions(make(OP_CLOSURE, new int[]{5, 1})),
+                                instructions(make(OP_RETURN_VALUE, new int[0]))
+                        )
+                ), List.of(
+                        instructions(make(OP_CONSTANT, new int[]{0})),
+                        instructions(make(OP_SET_GLOBAL, new int[]{0})),
+                        instructions(make(OP_CLOSURE, new int[]{6, 0})),
+                        instructions(make(OP_POP, new int[0]))
+                )))
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("closures")
+    @DisplayName("closure")
+    void closures(CompilerTestCase compilerTestCase) {
         runCompiler(compilerTestCase);
     }
 

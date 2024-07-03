@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static com.github.lipinskipawel.mlang.compiler.SymbolTable.SymbolScope.BUILTIN_SCOPE;
+import static com.github.lipinskipawel.mlang.compiler.SymbolTable.SymbolScope.FREE_SCOPE;
 import static com.github.lipinskipawel.mlang.compiler.SymbolTable.SymbolScope.GLOBAL_SCOPE;
 import static com.github.lipinskipawel.mlang.compiler.SymbolTable.SymbolScope.LOCAL_SCOPE;
 import static com.github.lipinskipawel.mlang.compiler.SymbolTable.enclosedSymbolTable;
@@ -15,6 +16,13 @@ import static com.github.lipinskipawel.mlang.compiler.SymbolTable.symbolTable;
 class SymbolTableTest implements WithAssertions {
 
     private record SymbolTestCase(SymbolTable table, List<Symbol> expectedSymbols) {
+    }
+
+    private record SymbolFreeTestCase(
+            SymbolTable table,
+            List<Symbol> expectedSymbols,
+            List<Symbol> expectedFreeSymbols
+    ) {
     }
 
     @Test
@@ -123,7 +131,7 @@ class SymbolTableTest implements WithAssertions {
     }
 
     @Test
-    void defineResolveBuiltins() {
+    void define_resolve_builtins() {
         var global = symbolTable();
         var firstLocal = enclosedSymbolTable(global);
         var secondLocal = enclosedSymbolTable(firstLocal);
@@ -145,6 +153,92 @@ class SymbolTableTest implements WithAssertions {
                 assertThat(actual).isPresent();
                 assertThat(actual.get()).isEqualTo(expected);
             }
+        }
+    }
+
+    @Test
+    void resolve_free() {
+        var global = symbolTable();
+        global.define("a");
+        global.define("b");
+
+        var firstLocal = enclosedSymbolTable(global);
+        firstLocal.define("c");
+        firstLocal.define("d");
+
+        var secondLocal = enclosedSymbolTable(firstLocal);
+        secondLocal.define("e");
+        secondLocal.define("f");
+
+        var tests = List.of(
+                new SymbolFreeTestCase(
+                        firstLocal,
+                        List.of(
+                                new Symbol("a", GLOBAL_SCOPE, 0),
+                                new Symbol("b", GLOBAL_SCOPE, 1),
+                                new Symbol("c", LOCAL_SCOPE, 0),
+                                new Symbol("d", LOCAL_SCOPE, 1)
+                        ),
+                        List.of()
+                ),
+                new SymbolFreeTestCase(
+                        secondLocal,
+                        List.of(
+                                new Symbol("a", GLOBAL_SCOPE, 0),
+                                new Symbol("b", GLOBAL_SCOPE, 1),
+                                new Symbol("c", FREE_SCOPE, 0),
+                                new Symbol("d", FREE_SCOPE, 1),
+                                new Symbol("e", LOCAL_SCOPE, 0),
+                                new Symbol("f", LOCAL_SCOPE, 1)
+                        ),
+                        List.of(
+                                new Symbol("c", LOCAL_SCOPE, 0),
+                                new Symbol("d", LOCAL_SCOPE, 1)
+                        )
+                )
+        );
+
+        for (var test : tests) {
+            for (var symbol : test.expectedSymbols) {
+                var actual = test.table.resolve(symbol.name());
+                assertThat(actual).isPresent();
+                assertThat(actual.get()).isEqualTo(symbol);
+            }
+
+            assertThat(test.table.freeSymbols).containsExactlyElementsOf(test.expectedFreeSymbols);
+        }
+    }
+
+    @Test
+    void resolve_unresolvable_free() {
+        var global = symbolTable();
+        global.define("a");
+
+        var firstLocal = enclosedSymbolTable(global);
+        firstLocal.define("c");
+
+        var secondLocal = enclosedSymbolTable(firstLocal);
+        secondLocal.define("e");
+        secondLocal.define("f");
+
+        var expected = List.of(
+                new Symbol("a", GLOBAL_SCOPE, 0),
+                new Symbol("c", FREE_SCOPE, 0),
+                new Symbol("e", LOCAL_SCOPE, 0),
+                new Symbol("f", LOCAL_SCOPE, 1)
+        );
+
+        for (var symbol : expected) {
+            var actual = secondLocal.resolve(symbol.name());
+            assertThat(actual).isPresent();
+            assertThat(actual.get()).isEqualTo(symbol);
+        }
+
+        var expectedUnresolvable = List.of("b", "d");
+
+        for (var name : expectedUnresolvable) {
+            var actual = secondLocal.resolve(name);
+            assertThat(actual).isEmpty();
         }
     }
 }

@@ -1,26 +1,27 @@
 package com.github.lipinskipawel.mlang.compiler;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
 import static com.github.lipinskipawel.mlang.compiler.SymbolTable.SymbolScope.BUILTIN_SCOPE;
+import static com.github.lipinskipawel.mlang.compiler.SymbolTable.SymbolScope.FREE_SCOPE;
 import static com.github.lipinskipawel.mlang.compiler.SymbolTable.SymbolScope.GLOBAL_SCOPE;
 import static com.github.lipinskipawel.mlang.compiler.SymbolTable.SymbolScope.LOCAL_SCOPE;
 import static java.util.Objects.requireNonNull;
+import static java.util.Optional.empty;
+import static java.util.Optional.of;
 import static java.util.Optional.ofNullable;
 
 public class SymbolTable {
     public enum SymbolScope {
-        GLOBAL_SCOPE("GLOBAL"),
-        LOCAL_SCOPE("LOCAL"),
-        BUILTIN_SCOPE("BUILTIN");
-        private final String scope;
-
-        SymbolScope(String scope) {
-            this.scope = scope;
-        }
+        GLOBAL_SCOPE,
+        LOCAL_SCOPE,
+        BUILTIN_SCOPE,
+        FREE_SCOPE;
     }
 
     public record Symbol(String name, SymbolScope scope, int index) {
@@ -29,20 +30,31 @@ public class SymbolTable {
     private final Map<String, Symbol> store;
     private int numDefinitions;
     SymbolTable outer;
+    List<Symbol> freeSymbols;
 
-    private SymbolTable(Map<String, Symbol> store, int numDefinitions) {
+    private SymbolTable(Map<String, Symbol> store, int numDefinitions, List<Symbol> freeSymbols) {
         this.store = requireNonNull(store);
         this.numDefinitions = numDefinitions;
+        this.freeSymbols = freeSymbols;
     }
 
     public static SymbolTable symbolTable() {
-        return new SymbolTable(new HashMap<>(), 0);
+        return new SymbolTable(new HashMap<>(), 0, new ArrayList<>());
     }
 
     public static SymbolTable enclosedSymbolTable(SymbolTable symbolTable) {
         final var table = symbolTable();
         table.outer = symbolTable;
         return table;
+    }
+
+    public Symbol defineFree(Symbol original) {
+        freeSymbols.add(original);
+
+        final var symbol = new Symbol(original.name, FREE_SCOPE, freeSymbols.size() - 1);
+
+        store.put(original.name, symbol);
+        return symbol;
     }
 
     public Symbol defineBuiltin(int index, String name) {
@@ -62,7 +74,18 @@ public class SymbolTable {
     public Optional<Symbol> resolve(String name) {
         final var symbol = store.get(name);
         if (symbol == null && outer != null) {
-            return outer.resolve(name);
+            final var maybeOuterSymbol = outer.resolve(name);
+            if (maybeOuterSymbol.isEmpty()) {
+                return empty();
+            }
+
+            final var outerSymbol = maybeOuterSymbol.get();
+            if (outerSymbol.scope == GLOBAL_SCOPE || outerSymbol.scope == BUILTIN_SCOPE) {
+                return maybeOuterSymbol;
+            }
+
+            final var free = defineFree(outerSymbol);
+            return of(free);
         }
         return ofNullable(symbol);
     }
