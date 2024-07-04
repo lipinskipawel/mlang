@@ -25,6 +25,21 @@ tasks {
         manifest {
             attributes["Main-Class"] = "com.github.lipinskipawel.mlang.repl.Main"
         }
+        dependsOn("benchmark")
+    }
+
+    register<Jar>("benchmark") {
+        archiveBaseName = "benchmark"
+        manifest {
+            attributes["Main-Class"] = "com.github.lipinskipawel.mlang.benchmark.Main"
+        }
+        from(sourceSets.main.get().output)
+        standardOutputCapture.start()
+    }
+
+    register<JavaExec>("runBenchmark") {
+        classpath = files(project.tasks.getByName("benchmark"))
+        dependsOn("benchmark")
     }
 
     shadowJar {

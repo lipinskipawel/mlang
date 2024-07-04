@@ -13,6 +13,7 @@ import com.github.lipinskipawel.mlang.parser.Parser;
 import com.github.lipinskipawel.mlang.parser.ast.Program;
 import org.assertj.core.api.WithAssertions;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -560,6 +561,24 @@ class VirtualMachineTest implements WithAssertions {
     @DisplayName("recursive functions")
     void recursive_functions(VmTestCase vmTestCase) {
         runVirtualMachineTest(vmTestCase);
+    }
+
+    @Test
+    void recursive_fibonacci() {
+        runVirtualMachineTest(new VmTestCase("""
+                let fibonacci = fn(x) {
+                    if (x == 0) {
+                        return 0;
+                    } else {
+                        if (x == 1) {
+                            return 1;
+                        } else {
+                            fibonacci(x - 1) + fibonacci(x - 2);
+                        }
+                    }
+                };
+                fibonacci(15);
+                """, 610));
     }
 
     private void runVirtualMachineTest(VmTestCase vmTestCase) {
