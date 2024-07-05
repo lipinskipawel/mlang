@@ -1,6 +1,7 @@
 # mlang
 
-Based on the book "[Writing An Interpreter In Go](https://interpreterbook.com)" by Thorsten Ball.
+Based on the book "[Writing An Interpreter In Go](https://interpreterbook.com)" and "[Writing A Compiler In Go](https://compilerbook.com/)"
+by Thorsten Ball.
 
 ## Writing An Interpreter In Go
 
@@ -51,3 +52,14 @@ and system calls. Without those (and without std) we couldn't ever even print so
 
 Apart for booleans the interpreter also uses pointer comparison in map for keys. We use pointers because using lookups
 (searching for value in keys) will defeat purpose of map turing O(1) into O(n).
+
+## Writing A Compiler In Go
+
+### General notes
+
+Compiler on a high level overview is just a program that is capable of converting AST into bytecode. The example
+language bytecode was series of instructions with constants. Symbol table is a construct that holds information about
+identifiers in the program. Identifier here can mean functions, constants, procedure and also plain identifier.
+
+Virtual machine is just a simplified machine with limited set of OpCode's that it understands. Just like a normal
+machine it follows fetch-decode-execute cycle.
