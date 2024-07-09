@@ -62,4 +62,11 @@ language bytecode was series of instructions with constants. Symbol table is a c
 identifiers in the program. Identifier here can mean functions, constants, procedure and also plain identifier.
 
 Virtual machine is just a simplified machine with limited set of OpCode's that it understands. Just like a normal
-machine it follows fetch-decode-execute cycle.
+machine it follows fetch-decode-execute cycle. Stack based virtual machine has been implemented.
+Instruction pointer (also known as program counter) is just a pointer to
+the address of the current instruction to fetch-decode-execute. When the instruction (opcode) is to load constant (in
+our case the OP_CONSTANT has width of 2 bytes) then we the VM is going to update ip by 2 to point to the next
+instruction.
+Stack pointer is just a pointer to the head of the stack. On the stack all the values are living. Function calls are
+living on the stack too. So to have a logical order, the frame must be implemented. Frame is just a compiled function
+with instruction pointer and base pointer. Base pointer is where we "left" the stack before entering new frame.
