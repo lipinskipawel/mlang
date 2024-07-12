@@ -57,12 +57,8 @@ public final class Main {
 
             final var vm = virtualMachine(compiler.bytecode());
             final var start = nanoTime();
-            error = vm.run();
+            vm.run();
             final var end = nanoTime();
-            if (error.isPresent()) {
-                System.out.printf("VM error [%s]%n", error.get());
-                return;
-            }
 
             result = vm.lastPoppedStackElement();
             duration = Duration.of(end - start, NANOS);

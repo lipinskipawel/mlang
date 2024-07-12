@@ -15,7 +15,6 @@ import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyObject;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyString;
 
 import java.util.List;
-import java.util.Optional;
 
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_ADD;
 import static com.github.lipinskipawel.mlang.code.OpCode.opCode;
@@ -27,8 +26,6 @@ import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.STRING
 import static com.github.lipinskipawel.mlang.object.Builtins.builtins;
 import static com.github.lipinskipawel.mlang.vm.Frame.frame;
 import static java.util.Arrays.asList;
-import static java.util.Optional.empty;
-import static java.util.Optional.of;
 import static java.util.stream.Stream.iterate;
 
 public final class VirtualMachine {
@@ -87,7 +84,7 @@ public final class VirtualMachine {
     }
 
     // fetch-decode-execute cycle
-    public Optional<Object> run() {
+    public void run() {
         while (currentFrame().instructionPointer() < currentFrame().instructions().length() - 1) {
             // we are in the hot path
             currentFrame().incrementInstructionPointer();
@@ -101,48 +98,15 @@ public final class VirtualMachine {
                 case OP_CONSTANT -> {
                     final var constIndex = readShort(instructions.slice(instructionPointer + 1, instructions.bytes().length));
                     currentFrame().incrementInstructionPointer(2);
-                    final var error = push(constants.get(constIndex));
-                    if (error.isPresent()) {
-                        return error;
-                    }
+                    push(constants.get(constIndex));
                 }
-                case OP_ADD, OP_SUB, OP_MUL, OP_DIV -> {
-                    final var error = executeBinaryOperation(op);
-                    if (error.isPresent()) {
-                        return error;
-                    }
-                }
+                case OP_ADD, OP_SUB, OP_MUL, OP_DIV -> executeBinaryOperation(op);
                 case OP_POP -> pop();
-                case OP_TRUE -> {
-                    final var error = push(TRUE);
-                    if (error.isPresent()) {
-                        return error;
-                    }
-                }
-                case OP_FALSE -> {
-                    final var error = push(FALSE);
-                    if (error.isPresent()) {
-                        return error;
-                    }
-                }
-                case OP_EQUAL, OP_NOT_EQUAL, OP_GREATER_THAN -> {
-                    final var error = executeComparison(op);
-                    if (error.isPresent()) {
-                        return error;
-                    }
-                }
-                case OP_BANG -> {
-                    final var error = executeBangOperator();
-                    if (error.isPresent()) {
-                        return error;
-                    }
-                }
-                case OP_MINUS -> {
-                    final var error = executeMinusOperator();
-                    if (error.isPresent()) {
-                        return error;
-                    }
-                }
+                case OP_TRUE -> push(TRUE);
+                case OP_FALSE -> push(FALSE);
+                case OP_EQUAL, OP_NOT_EQUAL, OP_GREATER_THAN -> executeComparison(op);
+                case OP_BANG -> executeBangOperator();
+                case OP_MINUS -> executeMinusOperator();
                 case OP_JUMP -> {
                     final var pos = readShort(instructions.slice(instructionPointer + 1, instructions.bytes().length));
                     currentFrame().setInstructionPointer(pos - 1);
@@ -156,12 +120,7 @@ public final class VirtualMachine {
                         currentFrame().setInstructionPointer(pos - 1);
                     }
                 }
-                case OP_NULL -> {
-                    final var error = push(NULL);
-                    if (error.isPresent()) {
-                        return error;
-                    }
-                }
+                case OP_NULL -> push(NULL);
                 case OP_SET_GLOBAL -> {
                     final var globalIndex = readShort(instructions.slice(instructionPointer + 1, instructions.bytes().length));
                     currentFrame().incrementInstructionPointer(2);
@@ -172,10 +131,7 @@ public final class VirtualMachine {
                     final var globalIndex = readShort(instructions.slice(instructionPointer + 1, instructions.bytes().length));
                     currentFrame().incrementInstructionPointer(2);
 
-                    final var error = push(globals[globalIndex]);
-                    if (error.isPresent()) {
-                        return error;
-                    }
+                    push(globals[globalIndex]);
                 }
                 case OP_SET_LOCAL -> {
                     final var localIndex = readByte(instructions.slice(instructionPointer + 1, instructions.bytes().length));
@@ -191,10 +147,7 @@ public final class VirtualMachine {
 
                     final var frame = currentFrame();
 
-                    final var error = push(stack[frame.basePointer() + localIndex]);
-                    if (error.isPresent()) {
-                        return error;
-                    }
+                    push(stack[frame.basePointer() + localIndex]);
                 }
                 case OP_GET_BUILTIN -> {
                     final var builtinIndex = readByte(instructions.slice(instructionPointer + 1, instructions.bytes().length));
@@ -202,22 +155,16 @@ public final class VirtualMachine {
 
                     final var definition = builtins().get(builtinIndex);
 
-                    final var error = push(definition.builtin());
-                    if (error.isPresent()) {
-                        return error;
-                    }
+                    push(definition.builtin());
                 }
                 case OP_ARRAY -> {
                     final var arrayLength = readShort(instructions.slice(instructionPointer + 1, instructions.bytes().length));
                     currentFrame().incrementInstructionPointer(2);
 
-                    final var error = push(new MonkeyArray(iterate(1, i -> i <= arrayLength, i -> i + 1)
+                    push(new MonkeyArray(iterate(1, i -> i <= arrayLength, i -> i + 1)
                             .map(it -> pop())
                             .toList()
                             .reversed()));
-                    if (error.isPresent()) {
-                        return error;
-                    }
                 }
                 case OP_HASH -> {
                     final var hashLength = readShort(instructions.slice(instructionPointer + 1, instructions.bytes().length));
@@ -232,28 +179,19 @@ public final class VirtualMachine {
                         hash.put(entries.get(i), entries.get(i + 1));
                     }
 
-                    final var error = push(hash);
-                    if (error.isPresent()) {
-                        return error;
-                    }
+                    push(hash);
                 }
                 case OP_INDEX -> {
                     final var index = pop();
                     final var left = pop();
 
-                    final var error = executeIndexExpression(left, index);
-                    if (error.isPresent()) {
-                        return error;
-                    }
+                    executeIndexExpression(left, index);
                 }
                 case OP_CALL -> {
                     final var numArgs = readByte(instructions.slice(instructionPointer + 1, instructions.bytes().length));
                     currentFrame().incrementInstructionPointer();
 
-                    final var error = executeCall(numArgs);
-                    if (error.isPresent()) {
-                        return error;
-                    }
+                    executeCall(numArgs);
                 }
                 case OP_RETURN_VALUE -> {
                     final var returnValue = pop();
@@ -261,75 +199,57 @@ public final class VirtualMachine {
                     final var frame = popFrame();
                     stackPointer = frame.basePointer() - 1;
 
-                    final var error = push(returnValue);
-                    if (error.isPresent()) {
-                        return error;
-                    }
+                    push(returnValue);
                 }
                 case OP_RETURN -> {
                     final var frame = popFrame();
                     stackPointer = frame.basePointer() - 1;
 
-                    final var error = push(NULL);
-                    if (error.isPresent()) {
-                        return error;
-                    }
+                    push(NULL);
                 }
                 case OP_CLOSURE -> {
                     final var constIndex = readShort(instructions.slice(instructionPointer + 1, instructions.bytes().length));
                     final var numFree = readByte(instructions.slice(instructionPointer + 3, instructions.bytes().length));
                     currentFrame().incrementInstructionPointer(3);
 
-                    final var error = pushClosure(constIndex, numFree);
-                    if (error.isPresent()) {
-                        return error;
-                    }
+                    pushClosure(constIndex, numFree);
                 }
                 case OP_GET_FREE -> {
                     final var freeIndex = readByte(instructions.slice(instructionPointer + 1, instructions.bytes().length));
                     currentFrame().incrementInstructionPointer();
 
                     final var currentClosure = currentFrame().closure;
-                    final var error = push(currentClosure.freeVariables[freeIndex]);
-                    if (error.isPresent()) {
-                        return error;
-                    }
+                    push(currentClosure.freeVariables[freeIndex]);
                 }
                 case OP_CURRENT_CLOSURE -> {
                     final var currentClosure = currentFrame().closure;
 
-                    final var error = push(currentClosure);
-                    if (error.isPresent()) {
-                        return error;
-                    }
+                    push(currentClosure);
                 }
             }
         }
-
-        return empty();
     }
 
-    private Optional<Object> executeCall(int numArgs) {
+    private void executeCall(int numArgs) {
         final var callee = stack[stackPointer - 1 - numArgs];
-        return switch (callee.type()) {
+        switch (callee.type()) {
             case CLOSURE_OBJ -> callClosure((Closure) callee, numArgs);
             case BUILTIN_OBJ -> callBuiltin((MonkeyBuiltin) callee, numArgs);
-            default -> of("calling non-function and non-built-in");
-        };
+            default -> throw new RuntimeException("calling non-function and non-built-in");
+        }
     }
 
-    private Optional<Object> callClosure(Closure closure, int numArgs) {
+    private void callClosure(Closure closure, int numArgs) {
         if (numArgs != closure.fn.numberOfParameters()) {
-            return of("wrong number of arguments want=%d, got=%d".formatted(closure.fn.numberOfParameters(), numArgs));
+            throw new RuntimeException("wrong number of arguments want=%d, got=%d".formatted(closure.fn.numberOfParameters(), numArgs));
         }
         final var newFrame = frame(closure, stackPointer - numArgs);
         pushFrame(newFrame);
 
         stackPointer = newFrame.basePointer() + closure.fn.numberOfLocals();
-        return empty();
     }
 
-    private Optional<Object> callBuiltin(MonkeyBuiltin fn, int numArgs) {
+    private void callBuiltin(MonkeyBuiltin fn, int numArgs) {
         final var args = slice(stack, stackPointer - numArgs, stackPointer);
 
         final var result = fn.builtin(args);
@@ -340,15 +260,13 @@ public final class VirtualMachine {
         } else {
             push(NULL);
         }
-
-        return empty();
     }
 
     private List<MonkeyObject> slice(MonkeyObject[] slice, int start, int end) {
         return asList(slice).subList(start, end);
     }
 
-    private Optional<Object> executeBinaryOperation(OpCode op) {
+    private void executeBinaryOperation(OpCode op) {
         final var right = pop();
         final var left = pop();
 
@@ -356,17 +274,19 @@ public final class VirtualMachine {
         final var rightType = right.type();
 
         if (leftType == INTEGER_OBJ && rightType == INTEGER_OBJ) {
-            return executeBinaryInteger(op, left, right);
+            executeBinaryInteger(op, left, right);
+            return;
         }
 
         if (leftType == STRING_OBJ && rightType == STRING_OBJ) {
-            return executeBinaryString(op, left, right);
+            executeBinaryString(op, left, right);
+            return;
         }
 
-        return of("unsupported types for binary operation: %s %s".formatted(leftType, rightType));
+        throw new RuntimeException("unsupported types for binary operation: %s %s".formatted(leftType, rightType));
     }
 
-    private Optional<Object> executeBinaryInteger(OpCode op, MonkeyObject left, MonkeyObject right) {
+    private void executeBinaryInteger(OpCode op, MonkeyObject left, MonkeyObject right) {
         final var leftValue = ((MonkeyInteger) left).value();
         final var rightValue = ((MonkeyInteger) right).value();
 
@@ -375,67 +295,56 @@ public final class VirtualMachine {
             case OP_SUB -> leftValue - rightValue;
             case OP_MUL -> leftValue * rightValue;
             case OP_DIV -> leftValue / rightValue;
-            default -> of("unknown integer operation [%s]".formatted(op));
+            default -> throw new RuntimeException("unknown integer operation [%s]".formatted(op));
         };
-        if (result instanceof Optional<?> error) {
-            return of(error.get());
-        }
-        return push(new MonkeyInteger((int) result));
+        push(new MonkeyInteger(result));
     }
 
-    private Optional<Object> executeBinaryString(OpCode op, MonkeyObject left, MonkeyObject right) {
+    private void executeBinaryString(OpCode op, MonkeyObject left, MonkeyObject right) {
         if (op != OP_ADD) {
-            return of("unknown string operator [%s]".formatted(op));
+            throw new RuntimeException("unknown string operator [%s]".formatted(op));
         }
 
         final var leftValue = ((MonkeyString) left).value();
         final var rightValue = ((MonkeyString) right).value();
 
-        return push(new MonkeyString(leftValue + rightValue));
+        push(new MonkeyString(leftValue + rightValue));
     }
 
-    private Optional<Object> executeComparison(OpCode op) {
+    private void executeComparison(OpCode op) {
         final var right = pop();
         final var left = pop();
 
         if (left.type() == INTEGER_OBJ && right.type() == INTEGER_OBJ) {
-            return executeIntegerComparison(op, left, right);
+            executeIntegerComparison(op, left, right);
+            return;
         }
 
-        final var result = switch (op) {
+        switch (op) {
             case OP_EQUAL -> push(nativeBoolToBooleanObject(right == left));
             case OP_NOT_EQUAL -> push(nativeBoolToBooleanObject(right != left));
-            default -> of("unknown integer operation [%s] (%s %s)".formatted(op, left.type(), right.type()));
-        };
-        if (result instanceof Optional<?> error && error.isPresent()) {
-            return of(error.get());
+            default ->
+                    throw new RuntimeException("unknown integer operation [%s] (%s %s)".formatted(op, left.type(), right.type()));
         }
-        return empty();
     }
 
-    private Optional<Object> executeIntegerComparison(OpCode op, MonkeyObject left, MonkeyObject right) {
+    private void executeIntegerComparison(OpCode op, MonkeyObject left, MonkeyObject right) {
         final var leftValue = ((MonkeyInteger) left).value();
         final var rightValue = ((MonkeyInteger) right).value();
 
-        final var result = switch (op) {
+        switch (op) {
             case OP_EQUAL -> push(nativeBoolToBooleanObject(rightValue == leftValue));
             case OP_NOT_EQUAL -> push(nativeBoolToBooleanObject(rightValue != leftValue));
             case OP_GREATER_THAN -> push(nativeBoolToBooleanObject(leftValue > rightValue));
-            default -> of("unknown operator [%s]".formatted(op));
-        };
-
-        if (result instanceof Optional<?> error && error.isPresent()) {
-            return of(error.get());
+            default -> throw new RuntimeException("unknown operator [%s]".formatted(op));
         }
-
-        return empty();
     }
 
     private MonkeyBoolean nativeBoolToBooleanObject(boolean input) {
         return input ? TRUE : FALSE;
     }
 
-    private Optional<Object> executeBangOperator() {
+    private void executeBangOperator() {
         final var operand = pop();
 
         switch (operand) {
@@ -446,55 +355,59 @@ public final class VirtualMachine {
                     push(TRUE);
                 }
             }
-            case MonkeyNull monkeyNull -> push(TRUE);
+            case MonkeyNull __ -> push(TRUE);
             default -> push(FALSE);
         }
-        return empty();
     }
 
-    private Optional<Object> executeMinusOperator() {
+    private void executeMinusOperator() {
         final var operand = pop();
 
         if (operand.type() != INTEGER_OBJ) {
-            return of("unsupported type for negation: %s".formatted(operand.type()));
+            throw new RuntimeException("unsupported type for negation: %s".formatted(operand.type()));
         }
 
         final var value = ((MonkeyInteger) operand).value();
-        return push(new MonkeyInteger(-value));
+        push(new MonkeyInteger(-value));
     }
 
-    private Optional<Object> executeIndexExpression(MonkeyObject left, MonkeyObject index) {
+    private void executeIndexExpression(MonkeyObject left, MonkeyObject index) {
         if (left.type() == ARRAY_OBJ && index.type() == INTEGER_OBJ) {
-            return executeArrayIndex(left, index);
+            executeArrayIndex(left, index);
+            return;
         }
         if (left.type() == HASH_OBJ) {
-            return executeHashIndex(left, index);
+            executeHashIndex(left, index);
+            return;
         }
-        return of("index operator not supported [%s]".formatted(left.type()));
+        throw new RuntimeException("index operator not supported [%s]".formatted(left.type()));
     }
 
-    private Optional<Object> executeArrayIndex(MonkeyObject left, MonkeyObject index) {
+    private void executeArrayIndex(MonkeyObject left, MonkeyObject index) {
         final var array = (MonkeyArray) left;
         final var i = ((MonkeyInteger) (index)).value();
         final var max = array.elements().size() - 1;
 
         if (i < 0 || i > max) {
-            return push(NULL);
+            push(NULL);
+            return;
         }
-        return push(array.elements().get(i));
+        push(array.elements().get(i));
     }
 
-    private Optional<Object> executeHashIndex(MonkeyObject left, MonkeyObject index) {
+    private void executeHashIndex(MonkeyObject left, MonkeyObject index) {
         final var hash = (MonkeyHash) left;
         if (index instanceof Hashable hashable) {
             final var pair = hash.getHashPair(hashable.hashKey());
             if (pair == null) {
-                return push(NULL);
+                push(NULL);
+                return;
             }
-            return push(pair.value());
+            push(pair.value());
+            return;
         }
 
-        return of("unusable as hash key [%s]".formatted(index));
+        throw new RuntimeException("unusable as hash key [%s]".formatted(index));
     }
 
     public MonkeyObject lastPoppedStackElement() {
@@ -509,7 +422,7 @@ public final class VirtualMachine {
         };
     }
 
-    private Optional<Object> pushClosure(int constIndex, int numFree) {
+    private void pushClosure(int constIndex, int numFree) {
         final var constant = constants.get(constIndex);
         if (constant instanceof CompilerFunction function) {
 
@@ -519,18 +432,18 @@ public final class VirtualMachine {
             stackPointer -= numFree;
 
             final var closure = new Closure(function, free);
-            return push(closure);
+            push(closure);
+            return;
         }
-        return of("not a function: %s".formatted(constant.getClass()));
+        throw new RuntimeException("not a function: %s".formatted(constant.getClass()));
     }
 
-    private Optional<Object> push(MonkeyObject object) {
+    private void push(MonkeyObject object) {
         if (stackPointer >= STACK_SIZE) {
-            return Optional.of("stack overflow");
+            throw new RuntimeException("stack overflow");
         }
         stack[stackPointer] = object;
         stackPointer++;
-        return empty();
     }
 
     private MonkeyObject pop() {

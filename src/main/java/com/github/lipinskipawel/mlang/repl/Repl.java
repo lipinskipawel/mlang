@@ -66,11 +66,7 @@ final class Repl {
                 }
 
                 final var vm = virtualMachine(compiler.bytecode(), globals);
-                error = vm.run();
-                if (error.isPresent()) {
-                    output.printf("Executing bytecode failed [%s]%n", error.get());
-                    continue;
-                }
+                vm.run();
 
                 final var monkeyObject = vm.lastPoppedStackElement();
                 output.println(monkeyObject.inspect());

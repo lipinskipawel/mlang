@@ -413,10 +413,12 @@ class VirtualMachineTest implements WithAssertions {
         compilerError.ifPresent(err -> fail("compiler error: [{}]", err));
 
         var virtualMachine = virtualMachine(compiler.bytecode());
-        var vmError = virtualMachine.run();
-        assertThat(vmError).isPresent();
 
-        assertThat(vmError.get()).isEqualTo(vmTestCase.expected);
+        var vmError = catchException(virtualMachine::run);
+
+        assertThat(vmError)
+                .isInstanceOf(RuntimeException.class)
+                .hasMessage(vmTestCase.expected.toString());
     }
 
     private static Stream<Arguments> builtinFunctions() {
@@ -589,8 +591,7 @@ class VirtualMachineTest implements WithAssertions {
         compilerError.ifPresent(err -> fail("compiler error: [{}]", err));
 
         var virtualMachine = virtualMachine(compiler.bytecode());
-        var vmError = virtualMachine.run();
-        vmError.ifPresent(err -> fail("vm error: [{}]", err));
+        virtualMachine.run();
 
         var stackElement = virtualMachine.lastPoppedStackElement();
 
