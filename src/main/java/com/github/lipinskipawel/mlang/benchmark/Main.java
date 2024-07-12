@@ -27,7 +27,7 @@ public final class Main {
                 }
               }
             };
-            fibonacci(35);
+            fibonacci(40);
             """;
 
     public static void main(String[] args) {

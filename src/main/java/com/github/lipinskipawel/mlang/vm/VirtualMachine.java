@@ -14,7 +14,6 @@ import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyNull;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyObject;
 import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyString;
 
-import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Optional;
 
@@ -27,7 +26,6 @@ import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.INTEGE
 import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.STRING_OBJ;
 import static com.github.lipinskipawel.mlang.object.Builtins.builtins;
 import static com.github.lipinskipawel.mlang.vm.Frame.frame;
-import static java.nio.ByteOrder.BIG_ENDIAN;
 import static java.util.Arrays.asList;
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
@@ -543,7 +541,7 @@ public final class VirtualMachine {
     }
 
     private short readShort(byte[] bytes) {
-        return ByteBuffer.wrap(bytes).order(BIG_ENDIAN).getShort();
+        return (short) (bytes[0] << 8 | (bytes[1] & 0xFF));
     }
 
     private int readByte(byte[] bytes) {
