@@ -47,7 +47,7 @@ public final class Instructions {
     public record Operands(int[] operands, int offset) {
     }
 
-    public static Operands readOperands(Definition definition, Instructions instructions) {
+    static Operands readOperands(Definition definition, Instructions instructions) {
         // this should be int[], not byte[]
         // I should change this implementation to use raw byte[]
         final var operands = ByteBuffer.allocate(definition.operandWidths().length * 4).order(BIG_ENDIAN);
@@ -111,10 +111,6 @@ public final class Instructions {
         return instructions.length;
     }
 
-    public void remove(int pos) {
-        instructions = slice(instructions, 0, pos);
-    }
-
     public void replaceInstructions(int pos, byte[] newInstructions) {
         arraycopy(newInstructions, 0, instructions, pos, newInstructions.length);
     }
@@ -124,7 +120,18 @@ public final class Instructions {
     }
 
     public byte[] slice(int start, int end) {
-        return slice(instructions, start, end);
+        final var byteBuffer = ByteBuffer.wrap(instructions).order(BIG_ENDIAN);
+        byteBuffer.position(start);
+        byteBuffer.limit(end);
+
+        var slice = new byte[byteBuffer.remaining()];
+        byteBuffer.get(slice);
+
+        return slice;
+    }
+
+    public short readShort(int start) {
+        return (short) (instructions[start] << 8 | (instructions[start + 1] & 0xFF));
     }
 
     @Override
@@ -134,7 +141,7 @@ public final class Instructions {
         var i = 0;
         while (i < instructions.length) {
             final var definition = OpCode.definition(instructions[i]);
-            final var operands = readOperands(definition, instructions(slice(instructions, i + 1, instructions.length)));
+            final var operands = readOperands(definition, instructions(slice(i + 1, this.instructions.length)));
 
             string.append("%04d %s\n".formatted(i, fmtInstruction(definition, operands.operands())));
 
@@ -157,16 +164,5 @@ public final class Instructions {
             case 2 -> "%s %d %d".formatted(definition.name(), operands[0], operands[1]);
             default -> "ERROR: unhandled operandCount for %s\n".formatted(definition.name());
         };
-    }
-
-    public static byte[] slice(byte[] bytes, int start, int end) {
-        final var byteBuffer = ByteBuffer.wrap(bytes).order(BIG_ENDIAN);
-        byteBuffer.position(start);
-        byteBuffer.limit(end);
-
-        var slice = new byte[byteBuffer.remaining()];
-        byteBuffer.get(slice);
-
-        return slice;
     }
 }

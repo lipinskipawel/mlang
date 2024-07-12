@@ -14,7 +14,6 @@ import static com.github.lipinskipawel.mlang.code.Instructions.instructions;
 import static com.github.lipinskipawel.mlang.code.Instructions.make;
 import static com.github.lipinskipawel.mlang.code.Instructions.merge;
 import static com.github.lipinskipawel.mlang.code.Instructions.readOperands;
-import static com.github.lipinskipawel.mlang.code.Instructions.slice;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_ADD;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_CLOSURE;
 import static com.github.lipinskipawel.mlang.code.OpCode.OP_CONSTANT;
@@ -64,7 +63,7 @@ class InstructionsTest implements WithAssertions {
     void read_operands(OpCode op, int[] operands, int bytesRead) {
         var instruction = make(op, operands);
 
-        var operandsRead = readOperands(op.definition(), instructions(slice(instruction, 1, instruction.length)));
+        var operandsRead = readOperands(op.definition(), instructions(instructions(instruction).slice(1, instruction.length)));
 
         assertThat(operandsRead.offset()).isEqualTo(bytesRead);
         for (var i = 0; i < operands.length; i++) {
