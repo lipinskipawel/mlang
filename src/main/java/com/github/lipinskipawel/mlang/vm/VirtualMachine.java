@@ -1,6 +1,5 @@
 package com.github.lipinskipawel.mlang.vm;
 
-import com.github.lipinskipawel.mlang.code.OpCode;
 import com.github.lipinskipawel.mlang.compiler.Bytecode;
 import com.github.lipinskipawel.mlang.evaluator.objects.Closure;
 import com.github.lipinskipawel.mlang.evaluator.objects.CompilerFunction;
@@ -16,8 +15,36 @@ import com.github.lipinskipawel.mlang.evaluator.objects.MonkeyString;
 
 import java.util.List;
 
-import static com.github.lipinskipawel.mlang.code.OpCode.OP_ADD;
-import static com.github.lipinskipawel.mlang.code.OpCode.opCode;
+import static com.github.lipinskipawel.mlang.code.InstructionOpCodes.OP_ADD;
+import static com.github.lipinskipawel.mlang.code.InstructionOpCodes.OP_ARRAY;
+import static com.github.lipinskipawel.mlang.code.InstructionOpCodes.OP_BANG;
+import static com.github.lipinskipawel.mlang.code.InstructionOpCodes.OP_CALL;
+import static com.github.lipinskipawel.mlang.code.InstructionOpCodes.OP_CLOSURE;
+import static com.github.lipinskipawel.mlang.code.InstructionOpCodes.OP_CONSTANT;
+import static com.github.lipinskipawel.mlang.code.InstructionOpCodes.OP_CURRENT_CLOSURE;
+import static com.github.lipinskipawel.mlang.code.InstructionOpCodes.OP_DIV;
+import static com.github.lipinskipawel.mlang.code.InstructionOpCodes.OP_EQUAL;
+import static com.github.lipinskipawel.mlang.code.InstructionOpCodes.OP_FALSE;
+import static com.github.lipinskipawel.mlang.code.InstructionOpCodes.OP_GET_BUILTIN;
+import static com.github.lipinskipawel.mlang.code.InstructionOpCodes.OP_GET_FREE;
+import static com.github.lipinskipawel.mlang.code.InstructionOpCodes.OP_GET_GLOBAL;
+import static com.github.lipinskipawel.mlang.code.InstructionOpCodes.OP_GET_LOCAL;
+import static com.github.lipinskipawel.mlang.code.InstructionOpCodes.OP_GREATER_THAN;
+import static com.github.lipinskipawel.mlang.code.InstructionOpCodes.OP_HASH;
+import static com.github.lipinskipawel.mlang.code.InstructionOpCodes.OP_INDEX;
+import static com.github.lipinskipawel.mlang.code.InstructionOpCodes.OP_JUMP;
+import static com.github.lipinskipawel.mlang.code.InstructionOpCodes.OP_JUMP_NOT_TRUTHY;
+import static com.github.lipinskipawel.mlang.code.InstructionOpCodes.OP_MINUS;
+import static com.github.lipinskipawel.mlang.code.InstructionOpCodes.OP_MUL;
+import static com.github.lipinskipawel.mlang.code.InstructionOpCodes.OP_NOT_EQUAL;
+import static com.github.lipinskipawel.mlang.code.InstructionOpCodes.OP_NULL;
+import static com.github.lipinskipawel.mlang.code.InstructionOpCodes.OP_POP;
+import static com.github.lipinskipawel.mlang.code.InstructionOpCodes.OP_RETURN;
+import static com.github.lipinskipawel.mlang.code.InstructionOpCodes.OP_RETURN_VALUE;
+import static com.github.lipinskipawel.mlang.code.InstructionOpCodes.OP_SET_GLOBAL;
+import static com.github.lipinskipawel.mlang.code.InstructionOpCodes.OP_SET_LOCAL;
+import static com.github.lipinskipawel.mlang.code.InstructionOpCodes.OP_SUB;
+import static com.github.lipinskipawel.mlang.code.InstructionOpCodes.OP_TRUE;
 import static com.github.lipinskipawel.mlang.evaluator.objects.CompilerFunction.compilerFunction;
 import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.ARRAY_OBJ;
 import static com.github.lipinskipawel.mlang.evaluator.objects.ObjectType.HASH_OBJ;
@@ -92,7 +119,7 @@ public final class VirtualMachine {
             final var instructionPointer = currentFrame().instructionPointer();
             final var instructions = currentFrame().instructions();
             // this static `opCode` function probably should be replaced by raw byte
-            final var op = opCode(instructions.instructionAt(instructionPointer));
+            final var op = instructions.instructionAt(instructionPointer);
 
             switch (op) {
                 case OP_CONSTANT -> {
@@ -266,7 +293,7 @@ public final class VirtualMachine {
         return asList(slice).subList(start, end);
     }
 
-    private void executeBinaryOperation(OpCode op) {
+    private void executeBinaryOperation(int op) {
         final var right = pop();
         final var left = pop();
 
@@ -286,7 +313,7 @@ public final class VirtualMachine {
         throw new RuntimeException("unsupported types for binary operation: %s %s".formatted(leftType, rightType));
     }
 
-    private void executeBinaryInteger(OpCode op, MonkeyObject left, MonkeyObject right) {
+    private void executeBinaryInteger(int op, MonkeyObject left, MonkeyObject right) {
         final var leftValue = ((MonkeyInteger) left).value();
         final var rightValue = ((MonkeyInteger) right).value();
 
@@ -300,7 +327,7 @@ public final class VirtualMachine {
         push(new MonkeyInteger(result));
     }
 
-    private void executeBinaryString(OpCode op, MonkeyObject left, MonkeyObject right) {
+    private void executeBinaryString(int op, MonkeyObject left, MonkeyObject right) {
         if (op != OP_ADD) {
             throw new RuntimeException("unknown string operator [%s]".formatted(op));
         }
@@ -311,7 +338,7 @@ public final class VirtualMachine {
         push(new MonkeyString(leftValue + rightValue));
     }
 
-    private void executeComparison(OpCode op) {
+    private void executeComparison(int op) {
         final var right = pop();
         final var left = pop();
 
@@ -328,7 +355,7 @@ public final class VirtualMachine {
         }
     }
 
-    private void executeIntegerComparison(OpCode op, MonkeyObject left, MonkeyObject right) {
+    private void executeIntegerComparison(int op, MonkeyObject left, MonkeyObject right) {
         final var leftValue = ((MonkeyInteger) left).value();
         final var rightValue = ((MonkeyInteger) right).value();
 
