@@ -3,7 +3,6 @@ package com.github.lipinskipawel.mlang.code;
 import com.github.lipinskipawel.mlang.code.OpCode.Definition;
 
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 import java.util.List;
 
 import static java.lang.System.arraycopy;
@@ -11,7 +10,7 @@ import static java.nio.ByteOrder.BIG_ENDIAN;
 import static java.util.Arrays.stream;
 
 public final class Instructions {
-    private byte[] instructions;
+    byte[] instructions;
 
     private Instructions(byte[] instructions) {
         this.instructions = instructions;
@@ -55,7 +54,7 @@ public final class Instructions {
         var offset = 0;
 
         for (var i = 0; i < definition.operandWidths().length; i++) {
-            final var wrap = ByteBuffer.wrap(instructions.bytes()).order(BIG_ENDIAN);
+            final var wrap = ByteBuffer.wrap(instructions.instructions).order(BIG_ENDIAN);
             var width = definition.operandWidths()[i];
             switch (width) {
                 case 1: {
@@ -90,20 +89,20 @@ public final class Instructions {
 
     public static Instructions merge(List<Instructions> instructions) {
         final var length = instructions.stream()
-                .mapToInt(it -> it.bytes().length)
+                .mapToInt(Instructions::length)
                 .sum();
         final var contacted = ByteBuffer.allocate(length).order(BIG_ENDIAN);
         instructions.stream()
-                .map(Instructions::bytes)
+                .map(it -> it.instructions)
                 .forEach(contacted::put);
 
         return instructions(contacted.array());
     }
 
     public void append(Instructions additional) {
-        final var byteBuffer = ByteBuffer.allocate(instructions.length + additional.bytes().length).order(BIG_ENDIAN);
+        final var byteBuffer = ByteBuffer.allocate(instructions.length + additional.length()).order(BIG_ENDIAN);
         byteBuffer.put(instructions);
-        byteBuffer.put(additional.bytes());
+        byteBuffer.put(additional.instructions);
 
         instructions = byteBuffer.array();
     }
@@ -126,10 +125,6 @@ public final class Instructions {
 
     public byte[] slice(int start, int end) {
         return slice(instructions, start, end);
-    }
-
-    public byte[] bytes() {
-        return Arrays.copyOf(instructions, instructions.length);
     }
 
     @Override

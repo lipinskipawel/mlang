@@ -862,15 +862,15 @@ class CompilerTest implements WithAssertions {
     private void testInstructions(List<Instructions> expected, Instructions actual) {
         var concated = merge(expected);
 
-        final var actualLength = actual.bytes().length;
-        final var expectedLength = concated.bytes().length;
+        final var actualLength = actual.length();
+        final var expectedLength = concated.length();
         if (actualLength != expectedLength) {
             fail("wrong instruction length\nwant\n%s\ngot\n%s\n", concated, actual);
         }
         assertThat(actualLength).isEqualTo(expectedLength);
-        for (var i = 0; i < actual.bytes().length; i++) {
-            final byte actualByte = actual.bytes()[i];
-            final byte expectedByte = concated.bytes()[i];
+        for (var i = 0; i < actual.length(); i++) {
+            final byte actualByte = actual.instructionAt(i);
+            final byte expectedByte = concated.instructionAt(i);
             if (actualByte != expectedByte) {
                 fail("wrong instruction at %d. \nwant\n%s\ngot\n%s\n", i, concated, actual);
             }

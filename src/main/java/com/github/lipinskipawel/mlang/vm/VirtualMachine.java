@@ -92,11 +92,11 @@ public final class VirtualMachine {
             final var instructionPointer = currentFrame().instructionPointer();
             final var instructions = currentFrame().instructions();
             // this static `opCode` function probably should be replaced by raw byte
-            final var op = opCode(instructions.bytes()[instructionPointer]);
+            final var op = opCode(instructions.instructionAt(instructionPointer));
 
             switch (op) {
                 case OP_CONSTANT -> {
-                    final var constIndex = readShort(instructions.slice(instructionPointer + 1, instructions.bytes().length));
+                    final var constIndex = readShort(instructions.slice(instructionPointer + 1, instructions.length()));
                     currentFrame().incrementInstructionPointer(2);
                     push(constants.get(constIndex));
                 }
@@ -108,11 +108,11 @@ public final class VirtualMachine {
                 case OP_BANG -> executeBangOperator();
                 case OP_MINUS -> executeMinusOperator();
                 case OP_JUMP -> {
-                    final var pos = readShort(instructions.slice(instructionPointer + 1, instructions.bytes().length));
+                    final var pos = readShort(instructions.slice(instructionPointer + 1, instructions.length()));
                     currentFrame().setInstructionPointer(pos - 1);
                 }
                 case OP_JUMP_NOT_TRUTHY -> {
-                    final var pos = readShort(instructions.slice(instructionPointer + 1, instructions.bytes().length));
+                    final var pos = readShort(instructions.slice(instructionPointer + 1, instructions.length()));
                     currentFrame().incrementInstructionPointer(2);
 
                     final var condition = pop();
@@ -122,19 +122,19 @@ public final class VirtualMachine {
                 }
                 case OP_NULL -> push(NULL);
                 case OP_SET_GLOBAL -> {
-                    final var globalIndex = readShort(instructions.slice(instructionPointer + 1, instructions.bytes().length));
+                    final var globalIndex = readShort(instructions.slice(instructionPointer + 1, instructions.length()));
                     currentFrame().incrementInstructionPointer(2);
 
                     globals[globalIndex] = pop();
                 }
                 case OP_GET_GLOBAL -> {
-                    final var globalIndex = readShort(instructions.slice(instructionPointer + 1, instructions.bytes().length));
+                    final var globalIndex = readShort(instructions.slice(instructionPointer + 1, instructions.length()));
                     currentFrame().incrementInstructionPointer(2);
 
                     push(globals[globalIndex]);
                 }
                 case OP_SET_LOCAL -> {
-                    final var localIndex = readByte(instructions.slice(instructionPointer + 1, instructions.bytes().length));
+                    final var localIndex = readByte(instructions.slice(instructionPointer + 1, instructions.length()));
                     currentFrame().incrementInstructionPointer();
 
                     final var frame = currentFrame();
@@ -142,7 +142,7 @@ public final class VirtualMachine {
                     stack[frame.basePointer() + localIndex] = pop();
                 }
                 case OP_GET_LOCAL -> {
-                    final var localIndex = readByte(instructions.slice(instructionPointer + 1, instructions.bytes().length));
+                    final var localIndex = readByte(instructions.slice(instructionPointer + 1, instructions.length()));
                     currentFrame().incrementInstructionPointer();
 
                     final var frame = currentFrame();
@@ -150,7 +150,7 @@ public final class VirtualMachine {
                     push(stack[frame.basePointer() + localIndex]);
                 }
                 case OP_GET_BUILTIN -> {
-                    final var builtinIndex = readByte(instructions.slice(instructionPointer + 1, instructions.bytes().length));
+                    final var builtinIndex = readByte(instructions.slice(instructionPointer + 1, instructions.length()));
                     currentFrame().incrementInstructionPointer();
 
                     final var definition = builtins().get(builtinIndex);
@@ -158,7 +158,7 @@ public final class VirtualMachine {
                     push(definition.builtin());
                 }
                 case OP_ARRAY -> {
-                    final var arrayLength = readShort(instructions.slice(instructionPointer + 1, instructions.bytes().length));
+                    final var arrayLength = readShort(instructions.slice(instructionPointer + 1, instructions.length()));
                     currentFrame().incrementInstructionPointer(2);
 
                     push(new MonkeyArray(iterate(1, i -> i <= arrayLength, i -> i + 1)
@@ -167,7 +167,7 @@ public final class VirtualMachine {
                             .reversed()));
                 }
                 case OP_HASH -> {
-                    final var hashLength = readShort(instructions.slice(instructionPointer + 1, instructions.bytes().length));
+                    final var hashLength = readShort(instructions.slice(instructionPointer + 1, instructions.length()));
                     currentFrame().incrementInstructionPointer(2);
 
                     final var entries = iterate(1, i -> i <= hashLength, i -> i + 1)
@@ -188,7 +188,7 @@ public final class VirtualMachine {
                     executeIndexExpression(left, index);
                 }
                 case OP_CALL -> {
-                    final var numArgs = readByte(instructions.slice(instructionPointer + 1, instructions.bytes().length));
+                    final var numArgs = readByte(instructions.slice(instructionPointer + 1, instructions.length()));
                     currentFrame().incrementInstructionPointer();
 
                     executeCall(numArgs);
@@ -208,14 +208,14 @@ public final class VirtualMachine {
                     push(NULL);
                 }
                 case OP_CLOSURE -> {
-                    final var constIndex = readShort(instructions.slice(instructionPointer + 1, instructions.bytes().length));
-                    final var numFree = readByte(instructions.slice(instructionPointer + 3, instructions.bytes().length));
+                    final var constIndex = readShort(instructions.slice(instructionPointer + 1, instructions.length()));
+                    final var numFree = readByte(instructions.slice(instructionPointer + 3, instructions.length()));
                     currentFrame().incrementInstructionPointer(3);
 
                     pushClosure(constIndex, numFree);
                 }
                 case OP_GET_FREE -> {
-                    final var freeIndex = readByte(instructions.slice(instructionPointer + 1, instructions.bytes().length));
+                    final var freeIndex = readByte(instructions.slice(instructionPointer + 1, instructions.length()));
                     currentFrame().incrementInstructionPointer();
 
                     final var currentClosure = currentFrame().closure;
